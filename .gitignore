@@ -36,7 +36,6 @@ backend/node_modules/
 backend/.wrangler/
 backend/.env
 backend/.env.local
-backend/package-lock.json
 
 # ------------------------
 # Shared workspace junk
