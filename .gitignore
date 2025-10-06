@@ -20,7 +20,6 @@ frontend/node_modules/
 frontend/.vercel/
 frontend/.netlify/
 frontend/.output/
-frontend/package-lock.json
 frontend/.env
 frontend/.env.local
 
