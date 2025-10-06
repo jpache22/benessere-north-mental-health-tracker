@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "backend",
+  "name": "testbackend", // change back to backend after testing
   "main": "src/index.ts",
   "compatibility_date": "2025-10-06"
   // "compatibility_flags": [
