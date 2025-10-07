@@ -2,10 +2,16 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "testbackend", // change back to backend after testing
   "main": "src/index.ts",
-  "compatibility_date": "2025-10-06"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
+  "compatibility_date": "2025-10-06",
+  "compatibility_flags": [
+     "nodejs_compat"
+   ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "DATABASE",
+    }
+  ] 
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },
