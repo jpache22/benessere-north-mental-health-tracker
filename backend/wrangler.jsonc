@@ -9,7 +9,7 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "DATABASE",
+      "id": "mental-health-tracker-db",
     }
   ] 
   // "vars": {
