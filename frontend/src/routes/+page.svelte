@@ -20,6 +20,13 @@
       alert('Login functionality will be connected to backend');
     }, 1000);
   }
+
+  // TEST ASYNC FUNCTION TO TEST API CALL FROM FRONTEND
+  async function testConnection() {
+    const resp = await fetch(`${import.meta.env.VITE_API_URL}/db-test`); // VITE_API_URL IS SET IN CLOUDFLARE PAGES IT IS OUR WORKER URL
+    const data = await resp.json(); // get the data from the api call
+    console.log(JSON.stringify(data, null, 2)); // returns data
+  }
 </script>
 
 <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -84,3 +91,8 @@
     </div>
   </div>
 </div>
+
+<!-- TEST BUTTON FOR TEST API CALL FROM FRONTEND (ADDED STYLING FOR VISIBILITY)-->
+ <button 
+    class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" 
+    on:click={testConnection}>TEST DB CONNECTION</button>
