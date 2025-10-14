@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { Client } from "pg";
 
+
 type Bindings = {
   HYPERDRIVE: Hyperdrive,
   MAIN_PAGES_URL: string,
