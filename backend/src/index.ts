@@ -6,7 +6,8 @@ import { Client } from "pg";
 type Bindings = {
   HYPERDRIVE: Hyperdrive,
   MAIN_PAGES_URL: string,
-  DEV_PAGES_URL: string
+  DEV_PAGES_URL: string,
+    JMASER_DEV_PAGES_URL: string
 }
 
 const app = new Hono<{Bindings: Bindings}>()
@@ -14,7 +15,7 @@ const app = new Hono<{Bindings: Bindings}>()
 // must add Cross-origin resource sharing permissions for the pages urls
 app.use('*', async(context, next) => { // next is a function that tells hono to continue to the next middleware/route handler
   const corsMiddleware = cors({
-    origin: [context.env.DEV_PAGES_URL, context.env.MAIN_PAGES_URL],
+origin: [context.env.DEV_PAGES_URL, context.env.MAIN_PAGES_URL, context.env.JMASER_DEV_PAGES_URL],
     allowMethods: ['GET'],
     credentials: true
   });
