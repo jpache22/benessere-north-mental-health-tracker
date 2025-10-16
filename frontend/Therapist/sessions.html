@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Therapist – Sessions | Benessere North</title>
+  <!-- Base therapist styling (shared across pages) -->
+  <link rel="stylesheet" href="style.css" />
+  <!-- Page-specific scoped styles -->
+  <link rel="stylesheet" href="sessions.css" />
+</head>
+
+<body class="page-sessions">
+  <!-- Header -->
+  <header class="site-header">
+    <nav class="nav container" aria-label="Primary">
+      <a class="brand" href="../landing/index.html">
+        <span class="logo" aria-hidden="true">BN</span>
+        <span class="brand-text">Benessere North</span>
+      </a>
+      <button id="menuBtn" class="menu-btn" aria-label="Toggle menu" aria-expanded="false" aria-controls="navList">☰</button>
+      <ul id="navList" class="nav-list">
+        <li><a href="../landing/index.html#features">Features</a></li>
+        <li><a href="../landing/index.html#roles">Roles</a></li>
+        <li><a href="../landing/index.html#contact">Contact</a></li>
+        <li><a class="btn small outline" href="../login/index.html">Sign out</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Main Layout -->
+  <main class="dash container">
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Therapist navigation">
+      <h2 class="side-title">Therapist</h2>
+      <nav class="side-nav">
+        <a href="index.html">Overview</a>
+        <a class="active" href="sessions.html" aria-current="page">Sessions</a>
+        <a href="forms.html">Assigned Forms</a>
+        <a href="patients.html">Patients</a>
+        <a href="messages.html">Messages</a>
+        <a href="settings.html">Settings</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <section class="content">
+      <header class="content-head">
+        <h1>Sessions</h1>
+        <div class="actions">
+          <input id="search" class="input" type="search" placeholder="Search by patient or notes…" />
+          <select id="statusFilter" class="input">
+            <option value="all">All statuses</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="completed">Completed</option>
+            <option value="canceled">Canceled</option>
+          </select>
+          <input id="dateFrom" class="input" type="date" />
+          <input id="dateTo" class="input" type="date" />
+          <button id="newSessionBtn" class="btn">+ New Session</button>
+        </div>
+      </header>
+
+      <!-- KPI Summary -->
+      <div class="kpis grid-3">
+        <div class="kpi">
+          <span class="kpi-label">This week</span>
+          <span id="kpiWeek" class="kpi-value">0</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Completed</span>
+          <span id="kpiDone" class="kpi-value">0</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Canceled</span>
+          <span id="kpiCanceled" class="kpi-value">0</span>
+        </div>
+      </div>
+
+      <!-- Sessions Table -->
+      <div class="card">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Patient</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th class="right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sessionBody">
+              <!-- Rows will be injected by sessions.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <div id="emptyState" class="empty hidden">
+          <p>No sessions match your filters.</p>
+          <button id="clearFilters" class="btn outline">Clear filters</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container foot">
+      <span>© <span id="year"></span> Benessere North</span>
+      <nav class="foot-nav" aria-label="Footer">
+        <a href="../landing/index.html#features">Features</a>
+        <a href="../landing/index.html#roles">Roles</a>
+        <a href="../landing/index.html">Privacy</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- Shared nav/footer script -->
+  <script src="script.js"></script>
+  <!-- Page-specific script -->
+  <script src="sessions.js"></script>
+</body>
+</html>
