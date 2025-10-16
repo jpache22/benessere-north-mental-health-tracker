@@ -1,20 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Login | Health Tracker</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log in – Benessere North</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="login-container">
-    <h1>Welcome to Health Tracker</h1>
-    <form>
-      <input type="text" placeholder="Username" required>
-      <input type="password" placeholder="Password" required>
-      <button type="submit">Login</button>
-    </form>
-    <p>Don’t have an account? <a href="#">Sign up</a></p>
-  </div>
+  <!-- Shared header / nav -->
+  <header class="site-header">
+    <nav class="nav container" aria-label="Primary">
+      <a class="brand" href="../landing/index.html">
+        <span class="logo" aria-hidden="true">BN</span>
+        <span class="brand-text">Benessere North</span>
+      </a>
+
+      <button id="menuBtn" class="menu-btn" aria-label="Toggle menu" aria-expanded="false" aria-controls="navList">☰</button>
+
+      <ul id="navList" class="nav-list">
+        <li><a href="../landing/index.html#features">Features</a></li>
+        <li><a href="../landing/index.html#roles">Roles</a></li>
+        <li><a href="../landing/index.html#contact">Contact</a></li>
+        <li><a class="btn small outline" href="../landing/index.html">Home</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Login card -->
+  <main class="auth container">
+    <section class="card">
+      <div class="brand-center">
+        <div class="logo">BN</div>
+        <h1>Welcome back</h1>
+        <p class="subtitle">Sign in to continue</p>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <label class="field">
+          <span>Username</span>
+          <input id="username" type="text" placeholder="e.g., therapist01" required />
+          <small class="error" id="userErr"></small>
+        </label>
+
+        <label class="field">
+          <span>Password</span>
+          <input id="password" type="password" placeholder="••••••••" required minlength="6" />
+          <small class="error" id="passErr"></small>
+        </label>
+
+        <div class="row">
+          <label class="checkbox">
+            <input id="remember" type="checkbox" />
+            <span>Remember me</span>
+          </label>
+          <a class="link" href="../landing/index.html#contact">Need help?</a>
+        </div>
+
+        <button type="submit" class="primary">Sign In</button>
+      </form>
+
+      <p class="footnote">
+        Don’t have an account?
+        <a class="link" href="../landing/index.html#contact">Request access</a>
+      </p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container foot">
+      <span>© <span id="year"></span> Benessere North</span>
+      <nav class="foot-nav" aria-label="Footer">
+        <a href="../landing/index.html#features">Features</a>
+        <a href="../landing/index.html#roles">Roles</a>
+        <a href="../landing/index.html">Privacy</a>
+      </nav>
+    </div>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>

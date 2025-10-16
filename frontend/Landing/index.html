@@ -9,12 +9,12 @@
 <body>
   <!-- Header / Nav -->
   <header class="site-header">
-    <nav class="nav container">
+    <nav class="nav container" aria-label="Primary">
       <a class="brand" href="#">
-        <span class="logo">BN</span>
+        <span class="logo" aria-hidden="true">BN</span>
         <span class="brand-text">Benessere North</span>
       </a>
-      <button id="menuBtn" class="menu-btn" aria-label="Toggle menu" aria-expanded="false">☰</button>
+      <button id="menuBtn" class="menu-btn" aria-label="Toggle menu" aria-expanded="false" aria-controls="navList">☰</button>
       <ul id="navList" class="nav-list">
         <li><a href="#features">Features</a></li>
         <li><a href="#roles">Roles</a></li>
@@ -38,16 +38,30 @@
           <a class="btn" href="../login/index.html">Get started</a>
           <a class="btn outline" href="#features">See features</a>
         </div>
-        <p class="note">HIPAA-friendly design • Cloudflare-backed • Role-based access</p>
+        <p class="note">Privacy-first design • Cloudflare-backed • Role-based access</p>
+        <ul class="badges" aria-label="Trust badges">
+          <li>Encrypted in transit</li>
+          <li>Least-privilege roles</li>
+          <li>Auditability</li>
+        </ul>
       </div>
+
+      <!-- Abstract product preview (no PHQ-9/averages) -->
       <div class="hero-art" aria-hidden="true">
-        <!-- Placeholder “mock dashboard” card stack -->
-        <div class="card kpi">
-          <div class="kpi-row"><span>PHQ-9 Avg</span><strong>6.2</strong></div>
-          <div class="kpi-row"><span>Active Groups</span><strong>12</strong></div>
-          <div class="kpi-row"><span>Forms Today</span><strong>34</strong></div>
+        <div class="card preview">
+          <div class="preview-header">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="preview-body">
+            <div class="line"></div>
+            <div class="line short"></div>
+            <div class="pill"></div>
+            <div class="grid-ghost">
+              <span></span><span></span><span></span>
+              <span></span><span></span><span></span>
+            </div>
+          </div>
         </div>
-        <div class="card chart"></div>
       </div>
     </section>
 
@@ -57,7 +71,7 @@
       <div class="grid">
         <article class="feat">
           <h3>Form library</h3>
-          <p>PHQ-9, GAD-7, EPDS and custom forms with version control.</p>
+          <p>Evidence-based and custom forms with version control.</p>
         </article>
         <article class="feat">
           <h3>Assignments</h3>
@@ -65,11 +79,11 @@
         </article>
         <article class="feat">
           <h3>Dashboards</h3>
-          <p>See trends, completion rates, and risk alerts at a glance.</p>
+          <p>See trends, completion, and follow-ups at a glance.</p>
         </article>
         <article class="feat">
           <h3>Secure & simple</h3>
-          <p>Least-privilege roles and Cloudflare-backed storage.</p>
+          <p>Role-based permissions and Cloudflare-backed storage.</p>
         </article>
       </div>
     </section>
@@ -85,7 +99,7 @@
       </div>
     </section>
 
-    <!-- Contact / Footer CTA -->
+    <!-- Contact / CTA -->
     <section id="contact" class="cta container">
       <div class="cta-card">
         <h2>Ready to try it with your team?</h2>
@@ -101,7 +115,7 @@
   <footer class="site-footer">
     <div class="container foot">
       <span>© <span id="year"></span> Benessere North</span>
-      <nav class="foot-nav">
+      <nav class="foot-nav" aria-label="Footer">
         <a href="#features">Features</a>
         <a href="#roles">Roles</a>
         <a href="#">Privacy</a>
