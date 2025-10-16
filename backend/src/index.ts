@@ -54,4 +54,32 @@ app.get('/db-test', async (context) => {
     }
 })
 
+app.post('/login', async (context) => {
+
+    try {
+        const body = await context.req.json(); // Parse JSON body
+
+        const { username, password } = body;
+
+        if (!username || !password) {
+            return context.json({ success: false, error: 'Missing name or password' }, 400);
+        }
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        const pool = getPool(connectionString);
+
+        const result = await pool.query(
+            'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
+            [username, password]
+        );
+
+        return context.json({ success: true, userId: result.rows[0].id });
+    } catch (err: any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    }
+
+
+})
+
 export default app
