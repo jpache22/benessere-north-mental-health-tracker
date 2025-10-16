@@ -47,7 +47,7 @@ app.get('/db-test', async (context) => {
 
     try {
         const result = await pool.query(`SELECT NOW();`);
-        return context.json({ success: true, date: result.rows[0].now });
+        return context.json({ success: true, date: result.rows[0].now, foo: 'bar'});
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
