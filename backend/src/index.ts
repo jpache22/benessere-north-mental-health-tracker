@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { Client } from "pg";
 
+import { Pool } from "pg";
+
 
 type Bindings = {
   HYPERDRIVE: Hyperdrive,
@@ -11,6 +13,17 @@ type Bindings = {
 }
 
 const app = new Hono<{Bindings: Bindings}>()
+
+//this is a pool it manages connections to database(s) with reuse!
+let pool: Pool;
+
+export function getPool(connectionString: string): Pool {
+    if (!pool) {
+        pool = new Pool({ connectionString });
+    }
+    return pool;
+}
+
 
 // must add Cross-origin resource sharing permissions for the pages urls
 app.use('*', async(context, next) => { // next is a function that tells hono to continue to the next middleware/route handler
@@ -29,19 +42,16 @@ app.get('/', (c) => {
 
 // test api call to database
 app.get('/db-test', async (context) => {
-  const connectionString = context.env.HYPERDRIVE.connectionString;
+    const connectionString = context.env.HYPERDRIVE.connectionString;
+    const pool = getPool(connectionString);
 
-  const client = new Client({connectionString});
-  
-  try {
-    // query the current data and time
-    await client.connect(); // connect to the database
-    const result = await client.query(`SELECT NOW();`); // SQL query
-    return context.json({success: true, date: result.rows[0].now});
-  } catch(err: any) {
-    console.error(err);
-    return context.json({success: false, error: err.message}, 500);
-  }
+    try {
+        const result = await pool.query(`SELECT NOW();`);
+        return context.json({ success: true, date: result.rows[0].now });
+    } catch (err: any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    }
 })
 
 export default app
