@@ -4,7 +4,10 @@
   --border:#e5e7eb;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
+
+/* NEW: ensure full-height layout and flex column */
+html, body { height: 100%; }
+html,body{ margin:0 }
 body{
   font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
   color:var(--text);
@@ -12,16 +15,27 @@ body{
     radial-gradient(1200px 600px at 10% -10%, #d1fae5 0%, transparent 60%),
     radial-gradient(1000px 600px at 110% 110%, #dbeafe 0%, transparent 60%),
     var(--bg);
+
+  /* NEW: footer sticks to bottom when content is short */
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
 }
+
 .container{max-width:1100px;margin:0 auto;padding:24px}
+
+/* buttons */
 .btn{display:inline-block;padding:12px 16px;border-radius:12px;border:1px solid transparent;background:var(--brand);color:#fff;text-decoration:none;font-weight:700;box-shadow:0 10px 20px var(--ring);transition:transform .08s,background .16s}
 .btn:hover{background:var(--brand-strong)} .btn:active{transform:translateY(1px)}
 .btn.small{padding:9px 12px;font-weight:600}
 .btn.outline{background:transparent;color:var(--text);border-color:var(--border);box-shadow:none}
 .btn.outline:hover{border-color:var(--text)}
+
+/* inputs */
 .input{height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:.95rem;outline:none}
 .input:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--ring)}
 .muted{color:var(--muted)}
+
 /* header/footer */
 .site-header{position:sticky;top:0;z-index:20;backdrop-filter:saturate(180%) blur(6px);background:rgba(255,255,255,.7);border-bottom:1px solid var(--border)}
 .nav{display:flex;align-items:center;gap:16px}
@@ -32,9 +46,17 @@ body{
 .nav-list{display:flex;align-items:center;gap:14px;list-style:none;margin-left:auto;padding:0}
 .nav-list a{text-decoration:none;color:#0f172a}
 .nav-list a:hover{text-decoration:underline}
-.site-footer{border-top:1px solid var(--border);background:#fff}
+
+/* NEW: push footer to bottom and add breathing room */
+.site-footer{
+  border-top:1px solid var(--border);
+  background:#fff;
+  margin-top:auto;        /* key line: consumes remaining space */
+  padding:16px 0;         /* a touch more space */
+}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .foot-nav{display:flex;gap:16px}
+
 @media (max-width:960px){
   .menu-btn{display:block}
   .nav-list{position:absolute;right:24px;top:64px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px;display:none;flex-direction:column;min-width:220px}

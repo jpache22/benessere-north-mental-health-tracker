@@ -1,14 +1,17 @@
-<!-- Sidebar wrapper applied to all /therapist pages -->
-<div class="shell" style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start;min-height:calc(100vh - 140px)">
-  <aside class="sidebar" style="background:linear-gradient(180deg,#f8fff9,#f5fbff);border:1px solid var(--border);border-radius:14px;padding:16px;position:sticky;top:88px;height:fit-content">
-    <div class="side-title muted" style="margin:0 0 10px;font-size:1rem">Therapist</div>
-    <nav class="side-nav" style="display:grid;gap:8px">
-      <a href="/therapist" class="side-link">Overview</a>
-      <a href="/therapist/sessions" class="side-link">Sessions</a>
-      <a href="/therapist/forms" class="side-link">Assigned Forms</a>
-      <a href="/therapist/patients" class="side-link">Patients</a>
-      <a href="/therapist/messages" class="side-link">Messages</a>
-      <a href="/therapist/settings" class="side-link">Settings</a>
+<script>
+  // sidebar open/active handling is kept simple; highlight current route
+  import { page } from '$app/stores';
+  const is = (p) => $page.url.pathname === p || $page.url.pathname.startsWith(p + '/');
+</script>
+
+<div class="shell">
+  <aside class="sidebar" aria-label="Therapist navigation">
+    <div class="side-title">Therapist</div>
+    <nav class="side-nav">
+      <a class:active={is('/therapist')} href="/therapist">Overview</a>
+      <a class:active={is('/therapist/sessions')} href="/therapist/sessions">Sessions</a>
+      <a class:active={is('/therapist/forms')} href="/therapist/forms">Assigned Forms</a>
+      <a class:active={is('/therapist/patients')} href="/therapist/patients">Patients</a>
     </nav>
   </aside>
 
@@ -20,9 +23,16 @@
 </div>
 
 <style>
-  .side-link{display:block;padding:10px 12px;border-radius:12px;text-decoration:none;color:inherit}
-  .side-link:hover{background:#fff;border:1px solid var(--border)}
-  :global(a[aria-current="page"].side-link){
-    background:#fff;border:1px solid var(--border);box-shadow:0 10px 20px rgba(0,0,0,.05)
+  .shell{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
+  .sidebar{background:linear-gradient(180deg,#f8fffb, #f4f9ff);border:1px solid var(--border);border-radius:16px;padding:16px;position:sticky;top:92px}
+  .side-title{font-weight:700;color:#6b7a90;margin:2px 6px 10px}
+  .side-nav{display:grid;gap:6px}
+  .side-nav a{padding:12px 14px;border-radius:12px;text-decoration:none;color:#0f172a;border:1px solid transparent}
+  .side-nav a:hover{background:#f8fafc;border-color:#e5e7eb}
+  .side-nav a.active{background:#ffffff;border-color:#e5e7eb;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+  .main .container{padding:8px 0}
+  @media (max-width: 980px){
+    .shell{grid-template-columns:1fr}
+    .sidebar{position:static}
   }
 </style>
