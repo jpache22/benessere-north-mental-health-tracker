@@ -9,7 +9,9 @@
     <nav class="side-nav">
       <a class:active={is('/coordinator')} href="/coordinator">Overview</a>
       <a class:active={is('/coordinator/groups')} href="/coordinator/groups">Groups</a>
+      <a class:active={is('/coordinator/users')} href="/coordinator/users">Users & Roles</a>
       <a class:active={is('/coordinator/assignments')} href="/coordinator/assignments">Assignments</a>
+      <a class:active={is('/coordinator/forms')} href="/coordinator/forms">Forms</a>
       <a class:active={is('/coordinator/participants')} href="/coordinator/participants">Participants</a>
     </nav>
   </aside>
