@@ -73,7 +73,7 @@ app.post('/login', async (context) => {
 
 
         //hash password
-        const hashedPassword = await bcrypt.hash(password,1);
+        const hashedPassword = await bcrypt.hash(password,username.Tolower());
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
@@ -89,7 +89,7 @@ app.post('/login', async (context) => {
 
         //compare the password, and return 401 if not a match
         const isMatch = await bcrypt.compare(hashedPassword, result.rows[0].password);
-        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) ;
+        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) + " " + password ;
         if (!isMatch) {
             return context.json({success: false, foo : foo}, 401);
         }
@@ -123,7 +123,7 @@ app.post('/register', async (context) => {
         const pool = getPool(connectionString);
 
         //hash password
-        const hashedPassword = await bcrypt.hash(password,1);
+        const hashedPassword = await bcrypt.hash(password,username.Tolower());
 
         //get saved hashed password from db
         const result = await pool.query(
