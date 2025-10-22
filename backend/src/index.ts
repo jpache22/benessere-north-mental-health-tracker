@@ -73,7 +73,7 @@ app.post('/login', async (context) => {
 
 
         //hash password
-        const hashedPassword = await bcrypt.hash(password,username.Tolower());
+        const hashedPassword = await bcrypt.hash(password, username.toLowerCase());
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
@@ -123,7 +123,7 @@ app.post('/register', async (context) => {
         const pool = getPool(connectionString);
 
         //hash password
-        const hashedPassword = await bcrypt.hash(password,username.Tolower());
+        const hashedPassword = await bcrypt.hash(password,username.toLowerCase());
 
         //get saved hashed password from db
         const result = await pool.query(
