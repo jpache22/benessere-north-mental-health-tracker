@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { Client } from "pg";
+import * as bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 import { Pool } from "pg";
 
@@ -68,9 +70,65 @@ app.post('/login', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
 
+        //hash password
+        const hashedPassword = await bcrypt.hash(password,1);
+
+        //get saved hashed password from db
+        const result = await pool.query(
+            //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
+            //[username, password]
+            'SELECT password FROM users WHERE username = $1 LIMIT 1',
+            [username]
+        );
+
+        //if result.rows.length ==0 return a 401 (Unauthorized)
+        if(result.rows.length == 0) {
+            return context.json({success: false}, 401);
+        }
+
+        //compare the password, and return 401 if not a match
+        const isMatch = await bcrypt.compare(hashedPassword, result.rows[0]);
+
+        if (!isMatch) {
+            return context.json({success: false}, 401);
+        }
+
+
+        //TODO: upgrade tokens to real jwt's
+        //const jwtToken = jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const jwtToken = "foo";
+        //return a token if they match, with a 200 code
+        return context.json({ success: true, token: jwtToken, userId: result.rows[0].id });
+    } catch (err: any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    }
+
+
+})
+
+app.post('/register', async (context) => {
+
+    try {
+        const body = await context.req.json(); // Parse JSON body
+
+        const { username, password } = body;
+
+        if (!username || !password) {
+            return context.json({ success: false, error: 'Missing name or password' }, 400);
+        }
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        const pool = getPool(connectionString);
+
+        //hash password
+        const hashedPassword = await bcrypt.hash(password,1);
+
+        //get saved hashed password from db
         const result = await pool.query(
             'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
-            [username, password]
+            [username, hashedPassword]
+
         );
 
         return context.json({ success: true, userId: result.rows[0].id });
