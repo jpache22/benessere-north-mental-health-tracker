@@ -87,7 +87,7 @@ app.post('/login', async (context) => {
         }
 
         //compare the password, and return 401 if not a match
-        const isMatch = await bcrypt.compare(hashedPassword, result.rows[0]);
+        const isMatch = await bcrypt.compare(hashedPassword, result.rows[0].password);
 
         if (!isMatch) {
             return context.json({success: false}, 401);
