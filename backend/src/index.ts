@@ -8,10 +8,11 @@ import { Pool } from "pg";
 
 
 type Bindings = {
-  HYPERDRIVE: Hyperdrive,
-  MAIN_PAGES_URL: string,
-  DEV_PAGES_URL: string,
-  JMASER_DEV_PAGES_URL: string
+    HYPERDRIVE: Hyperdrive,
+    MAIN_PAGES_URL: string,
+    DEV_PAGES_URL: string,
+    JMASER_DEV_PAGES_URL: string,
+    JWT_SECRET: string
 }
 
 const app = new Hono<{Bindings: Bindings}>()
@@ -84,27 +85,24 @@ app.post('/login', async (context) => {
 
         //if result.rows.length ==0 return a 401 (Unauthorized)
         if(result.rows.length == 0) {
-            return context.json({success: false, foo : foo}, 401);
+            return context.json({success: false}, 401);
         }
 
         //compare the password, and return 401 if not a match
-
-        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) + " " + password ;
         if (hashedPassword !== result.rows[0].password) {
             return context.json({ success: false, foo: foo }, 401);
         }
 
 
-        //TODO: upgrade tokens to real jwt's
-        //const jwtToken = jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const jwtToken = "foo";
+        // upgrade tokens to real jwt's
+        const jwtToken = jwt.sign({ sub: result.rows[0].userId }, context.env.JWT_SECRET, { expiresIn: '1h' });
+
         //return a token if they match, with a 200 code
-        context.status(200);
-        return context.json({ success: true, token: jwtToken, foo : foo, userId: result.rows[0].id });
+        return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
     } catch (err: any) {
         console.error(err);
         context.status(500);
-        return context.json({ success: false, foo : foo, error: err.message });
+        return context.json({ success: false,  error: err.message });
     }
 
 
