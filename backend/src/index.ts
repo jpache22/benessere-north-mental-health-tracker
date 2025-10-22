@@ -58,7 +58,7 @@ app.get('/db-test', async (context) => {
 
 app.post('/login', async (context) => {
 
-    let foo = 1;
+    let foo = " ";
     try {
         const body = await context.req.json(); // Parse JSON body
 
@@ -70,11 +70,10 @@ app.post('/login', async (context) => {
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
-        foo++;
+
 
         //hash password
         const hashedPassword = await bcrypt.hash(password,1);
-        foo++;
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
@@ -82,19 +81,19 @@ app.post('/login', async (context) => {
             'SELECT password FROM users WHERE username = $1 LIMIT 1',
             [username]
         );
-        foo++;
+
         //if result.rows.length ==0 return a 401 (Unauthorized)
         if(result.rows.length == 0) {
             return context.json({success: false, foo : foo}, 401);
         }
-        foo++;
+
         //compare the password, and return 401 if not a match
         const isMatch = await bcrypt.compare(hashedPassword, result.rows[0].password);
-        foo++;
+        foo = result.rows[0].password;
         if (!isMatch) {
             return context.json({success: false, foo : foo}, 401);
         }
-        foo++;
+
 
         //TODO: upgrade tokens to real jwt's
         //const jwtToken = jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
