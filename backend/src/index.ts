@@ -88,11 +88,10 @@ app.post('/login', async (context) => {
         }
 
         //compare the password, and return 401 if not a match
-        const isMatch = await bcrypt.compare(hashedPassword, result.rows[0].password);
-        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) + " " + password  + isMatch;
-        if (!isMatch) {
-            context.status(401);
-            return context.json({ success: false, foo: foo });
+
+        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) + " " + password ;
+        if (hashedPassword !== result.rows[0].password) {
+            return context.json({ success: false, foo: foo }, 401);
         }
 
 
