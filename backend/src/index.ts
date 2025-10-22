@@ -89,9 +89,10 @@ app.post('/login', async (context) => {
 
         //compare the password, and return 401 if not a match
         const isMatch = await bcrypt.compare(hashedPassword, result.rows[0].password);
-        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) + " " + password ;
+        foo = result.rows[0].password + " " + hashedPassword + " " + typeof(result.rows[0].password) + typeof(hashedPassword) + " " + password  + isMatch;
         if (!isMatch) {
-            return context.json({success: false, foo : foo}, 401);
+            context.status(401);
+            return context.json({ success: false, foo: foo });
         }
 
 
@@ -99,10 +100,12 @@ app.post('/login', async (context) => {
         //const jwtToken = jwt.sign({ sub: userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
         const jwtToken = "foo";
         //return a token if they match, with a 200 code
-        return context.json({ success: true, token: jwtToken, foo : foo, userId: result.rows[0].id }, 200);
+        context.status(200);
+        return context.json({ success: true, token: jwtToken, foo : foo, userId: result.rows[0].id });
     } catch (err: any) {
         console.error(err);
-        return context.json({ success: false, foo : foo, error: err.message }, 500);
+        context.status(500);
+        return context.json({ success: false, foo : foo, error: err.message });
     }
 
 
