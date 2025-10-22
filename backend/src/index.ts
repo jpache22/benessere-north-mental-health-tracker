@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { Client } from "pg";
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 import { Pool } from "pg";
