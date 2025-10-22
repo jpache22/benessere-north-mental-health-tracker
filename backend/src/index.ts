@@ -93,9 +93,16 @@ app.post('/login', async (context) => {
             return context.json({ success: false, foo: foo }, 401);
         }
 
+        const payload = {
+            userId: result.rows[0].userId,
+            username: result.rows[0].username,
+            role: result.rows[0].role
+        };
+
+
 
         // upgrade tokens to real jwt's
-        const jwtToken = jwt.sign({ sub: result.rows[0].userId }, context.env.JWT_SECRET, { expiresIn: '1h' });
+        const jwtToken = jwt.sign(payload, context.env.JWT_SECRET, { expiresIn: '1h' });
 
         //return a token if they match, with a 200 code
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
