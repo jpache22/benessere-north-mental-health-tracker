@@ -1,32 +1,14 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors';
-import { Client } from "pg";
+import { Bindings } from './types';
 import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-import { Pool } from "pg";
-
-
-type Bindings = {
-    HYPERDRIVE: Hyperdrive,
-    MAIN_PAGES_URL: string,
-    DEV_PAGES_URL: string,
-    JMASER_DEV_PAGES_URL: string,
-    JWT_SECRET: string
-}
+import { getPool } from './db/pool';
+import phq9 from './forms/phq9';
+import groups from './db/groups';
+import projects from './db/projects';
 
 const app = new Hono<{Bindings: Bindings}>()
-
-//this is a pool it manages connections to database(s) with reuse!
-let pool: Pool;
-
-export function getPool(connectionString: string): Pool {
-    if (!pool) {
-        pool = new Pool({ connectionString });
-    }
-    return pool;
-}
-
 
 // must add Cross-origin resource sharing permissions for the pages urls
 app.use('*', async(context, next) => { // next is a function that tells hono to continue to the next middleware/route handler
@@ -38,24 +20,6 @@ app.use('*', async(context, next) => { // next is a function that tells hono to 
 
   return corsMiddleware(context, next);
 });
-
-app.get('/', (c) => {
-  return c.text('Hello Cloudflare Workers!')
-});
-
-// test api call to database
-app.get('/db-test', async (context) => {
-    const connectionString = context.env.HYPERDRIVE.connectionString;
-    const pool = getPool(connectionString);
-
-    try {
-        const result = await pool.query(`SELECT NOW();`);
-        return context.json({ success: true, date: result.rows[0].now, foo: 'bar'});
-    } catch (err: any) {
-        console.error(err);
-        return context.json({ success: false, error: err.message }, 500);
-    }
-})
 
 app.post('/login', async (context) => {
 
@@ -113,7 +77,7 @@ app.post('/login', async (context) => {
     }
 
 
-})
+});
 
 app.post('/register', async (context) => {
 
@@ -146,7 +110,14 @@ app.post('/register', async (context) => {
     }
 
 
-})
+});
+
+// routes for groups and projects
+app.route('/groups', groups);
+app.route('/projects', projects);
+
+// form routes
+app.route('/phq9', phq9);
 
 
 export default app
