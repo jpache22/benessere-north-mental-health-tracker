@@ -9,13 +9,15 @@
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "b1f4de80c7ed41a08f0c8877646a2764",
+      "id": "b1f4de80c7ed41a08f0c8877646a2764"
     }
   ], 
   "vars": {
      "MAIN_PAGES_URL": "https://00a4f9af.benessere-north-mental-health-tracker.pages.dev/",
-     "DEV_PAGES_URL": "https://dev-julissa.benessere-north-mental-health-tracker.pages.dev"
+     "DEV_PAGES_URL": "https://dev-julissa.benessere-north-mental-health-tracker.pages.dev",
+     "JMASER_DEV_PAGES_URL": "https://dev-jack.benessere-north-mental-health-tracker.pages.dev"
    }
+
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
