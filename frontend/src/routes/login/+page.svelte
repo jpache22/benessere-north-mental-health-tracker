@@ -78,7 +78,7 @@
     </form>
 
     <p class="muted" style="margin:14px 0 0;text-align:center">
-      Don’t have an account? <a class="btn outline small" href="/landing#contact">Request access</a>
+      Don’t have an account? <a class="btn outline small" href="/register">Sign Up</a>
     </p>
   </section>
 </main>

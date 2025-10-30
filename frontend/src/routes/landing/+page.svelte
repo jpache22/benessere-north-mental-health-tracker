@@ -82,7 +82,7 @@
       <p>Spin up a pilot, import your groups, and start collecting data in minutes.</p>
       <div class="cta-row">
         <a class="btn" href="/login">Log in</a>
-        <a class="btn outline" href="#">Request access</a>
+        <a class="btn outline" href="/register">Sign Up</a>
       </div>
     </div>
   </section>
