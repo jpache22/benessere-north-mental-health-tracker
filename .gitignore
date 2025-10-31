@@ -1,3 +1,28 @@
+<<<<<<< HEAD
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+=======
 # ------------------------
 # Global Node / Environment
 # ------------------------
@@ -45,3 +70,4 @@ backend/.env.local
 *.swp
 .idea/
 .vscode/
+>>>>>>> b3ee3079a7f878bfb9eaaeadcb2ccf93928b1cb2
