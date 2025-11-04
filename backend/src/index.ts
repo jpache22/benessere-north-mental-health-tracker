@@ -20,7 +20,8 @@ app.use('*', async(context, next) => { // next is a function that tells hono to 
         context.env.ANDY_DEV_PAGES_URL,
         context.env.SHAWN_DEV_PAGES_URL
     ],
-    allowMethods: ['GET'],
+    allowMethods: ['GET', 'POST'],
+    allowHeaders: ['Authorization', 'Content-Type'],
     credentials: true
   });
 
