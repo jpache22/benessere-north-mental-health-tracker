@@ -1,4 +1,4 @@
-<!-- frontend/src/routes/participant/forms/phq9/+page.svelte -->
+<!-- frontend/src/routes/participant/forms/+page.svelte -->
 <script>
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
@@ -31,8 +31,9 @@
   let successMessage = '';
   let showConfirmation = false;
 
- 
-  const participantId = 1;
+  // TODO: Get actual userId from authentication/session
+  // For now using hardcoded value - replace with actual user authentication
+  const userId = 1;
 
   // Calculate total score when answers change
   $: {
@@ -46,7 +47,7 @@
   $: severityLevel = getSeverityLevel(totalScore);
 
   function getSeverityLevel(score) {
-    if (score <= 4) return { level: 'Minimal', color: '#22c55e', description: 'Minimal depression' };
+    if (score <= 4) return { level: 'None-minimal', color: '#22c55e', description: 'Minimal depression' };
     if (score <= 9) return { level: 'Mild', color: '#84cc16', description: 'Mild depression' };
     if (score <= 14) return { level: 'Moderate', color: '#eab308', description: 'Moderate depression' };
     if (score <= 19) return { level: 'Moderately Severe', color: '#f97316', description: 'Moderately severe depression' };
@@ -56,6 +57,7 @@
   function handleSubmit() {
     if (!isFormComplete) {
       errorMessage = 'Please answer all questions before submitting.';
+      setTimeout(() => errorMessage = '', 5000);
       return;
     }
 
@@ -63,37 +65,74 @@
     showConfirmation = true;
   }
 
-  function confirmSubmit() {
+  async function confirmSubmit() {
     showConfirmation = false;
     isSubmitting = true;
     errorMessage = '';
+    successMessage = '';
 
- 
-    setTimeout(() => {
-      successMessage = 'Form submitted successfully! Redirecting...';
+    try {
+      // Prepare data in the format expected by backend
+      const formData = {
+        user_id: userId,
+        q1: parseInt(answers[1]),
+        q2: parseInt(answers[2]),
+        q3: parseInt(answers[3]),
+        q4: parseInt(answers[4]),
+        q5: parseInt(answers[5]),
+        q6: parseInt(answers[6]),
+        q7: parseInt(answers[7]),
+        q8: parseInt(answers[8]),
+        q9: parseInt(answers[9])
+      };
+
+      console.log('Submitting PHQ-9 form:', formData);
+
+      // Get API URL from environment variable or use localhost for development
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8787';
       
-      // Log the data that would be sent to backend
-      console.log('PHQ-9 Form Data:', {
-        participantId,
-        question1: answers[1],
-        question2: answers[2],
-        question3: answers[3],
-        question4: answers[4],
-        question5: answers[5],
-        question6: answers[6],
-        question7: answers[7],
-        question8: answers[8],
-        question9: answers[9],
-        totalScore,
-        severityLevel: severityLevel.level,
-        status: 'completed',
-        completedAt: new Date().toISOString()
+      // Make the API call to submit the form
+      const response = await fetch(`${apiUrl}/phq9`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
       });
 
-      setTimeout(() => {
-        goto('/participant');
-      }, 2000);
-    }, 1000);
+      console.log('Response status:', response.status);
+
+      const result = await response.json();
+      console.log('Response data:', result);
+
+      if (response.ok && result.success) {
+        successMessage = `Form submitted successfully! Form ID: ${result.formId}. Redirecting...`;
+        
+        // Clear the draft from localStorage on successful submission
+        localStorage.removeItem('phq9_draft');
+
+        // Log success for debugging
+        console.log('PHQ-9 Form submitted successfully:', {
+          formId: result.formId,
+          totalScore,
+          severity: severityLevel.level
+        });
+
+        // Redirect after 2 seconds
+        setTimeout(() => {
+          goto('/participant');
+        }, 2000);
+      } else {
+        // Handle error from backend
+        errorMessage = result.error || 'Failed to submit form. Please try again.';
+        console.error('Backend error:', result.error);
+        isSubmitting = false;
+      }
+    } catch (error) {
+      console.error('Network error submitting PHQ-9 form:', error);
+      errorMessage = 'Network error. Please check your connection and try again.';
+      isSubmitting = false;
+    }
   }
 
   function cancelSubmit() {
@@ -101,7 +140,7 @@
   }
 
   function saveDraft() {
-    // For now, just save to localStorage
+    // Save to localStorage
     const draftData = {
       answers,
       totalScore,
@@ -127,6 +166,7 @@
       try {
         const draft = JSON.parse(savedDraft);
         answers = draft.answers || {};
+        console.log('Loaded draft from localStorage');
       } catch (error) {
         console.error('Error loading draft:', error);
       }
@@ -158,7 +198,7 @@
   <!-- Alert Messages -->
   {#if errorMessage}
     <div class="alert alert-error" style="background:#fee2e2;border:1px solid #fca5a5;padding:14px 16px;border-radius:10px;margin-bottom:20px;color:#991b1b;display:flex;align-items:start;gap:10px">
-      <span style="font-size:1.2rem">⚠️</span>
+      <span style="font-size:1.2rem">⚠</span>
       <span>{errorMessage}</span>
     </div>
   {/if}
@@ -222,6 +262,29 @@
           </div>
         </div>
       {/each}
+
+      <!-- Score Display -->
+      <div style="background:#f8fafc;padding:20px;border-radius:12px;margin:20px 0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:1.1rem;font-weight:600;color:#1e293b">Current Score</span>
+          <span style="font-size:1.5rem;font-weight:700;color:{severityLevel.color}">{totalScore} / 27</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:#64748b">Severity Level:</span>
+          <span style="
+            padding:6px 12px;
+            border-radius:8px;
+            font-weight:600;
+            background:{severityLevel.color}20;
+            color:{severityLevel.color}
+          ">
+            {severityLevel.level}
+          </span>
+        </div>
+        <p style="margin:12px 0 0;font-size:0.9rem;color:#64748b;line-height:1.5">
+          {severityLevel.description}
+        </p>
+      </div>
 
       <!-- Progress Indicator -->
       <div style="margin:20px 0">
@@ -306,9 +369,13 @@
       </p>
       
       <div style="background:#f8fafc;padding:16px;border-radius:10px;margin-bottom:24px">
-        <div style="display:flex;justify-content:space-between">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
           <span style="color:#64748b">Total Score:</span>
           <span style="font-weight:700;color:{severityLevel.color};font-size:1.1rem">{totalScore} / 27</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:#64748b">Severity:</span>
+          <span style="font-weight:600;color:{severityLevel.color}">{severityLevel.level}</span>
         </div>
       </div>
 
@@ -316,12 +383,24 @@
         <button 
           on:click={cancelSubmit}
           style="padding:10px 20px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:0.95rem;font-weight:500;color:#64748b"
+          on:mouseenter={(e) => {
+            e.currentTarget.style.background = '#f8fafc';
+          }}
+          on:mouseleave={(e) => {
+            e.currentTarget.style.background = '#fff';
+          }}
         >
           Cancel
         </button>
         <button 
           on:click={confirmSubmit}
           style="padding:10px 24px;border-radius:8px;background:#6366f1;color:#fff;border:none;cursor:pointer;font-size:0.95rem;font-weight:600"
+          on:mouseenter={(e) => {
+            e.currentTarget.style.background = '#4f46e5';
+          }}
+          on:mouseleave={(e) => {
+            e.currentTarget.style.background = '#6366f1';
+          }}
         >
           Yes, Submit
         </button>
@@ -351,5 +430,21 @@
   /* Ensure radio buttons are visible */
   input[type="radio"] {
     flex-shrink: 0;
+  }
+
+  /* Animation for success/error messages */
+  .alert {
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(-10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 </style>
