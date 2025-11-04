@@ -88,16 +88,6 @@
         <input type="password" bind:value={confirmPassword} placeholder="••••••••" minlength="6" required />
       </label>
 
-      <label class="field">
-        <span>Role</span>
-        <select bind:value={role} class="input">
-          <option value="participant">Participant</option>
-          <option value="intake">Intake</option>
-          <option value="therapist">Therapist</option>
-          <option value="coordinator">Coordinator</option>
-        </select>
-      </label>
-
       <button type="submit" class="primary btn" disabled={loading}>
         {loading ? 'Creating Account...' : 'Sign Up'}
       </button>
