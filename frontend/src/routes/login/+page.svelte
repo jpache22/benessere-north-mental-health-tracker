@@ -13,43 +13,48 @@
   let passErr = '';
   let serverErr = '';
 
-  async function onSubmit(e) {
-    e.preventDefault();
-    userErr = passErr = serverErr = '';
+async function onSubmit(e) {
+  e.preventDefault();
+  userErr = passErr = serverErr = '';
 
-    // Basic input validation
-    if (!username.trim()) userErr = 'Please enter your username.';
-    if (!password.trim()) passErr = 'Please enter your password.';
-    else if (password.length < 6) passErr = 'Password must be at least 6 characters.';
+  // Basic input validation
+  if (!username.trim()) userErr = 'Please enter your username.';
+  if (!password.trim()) passErr = 'Please enter your password.';
+  else if (password.length < 6) passErr = 'Password must be at least 6 characters.';
+  if (userErr || passErr) return;
 
-    if (userErr || passErr) return;
+  try {
+    const res = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
 
-    try {
-      // Call backend login endpoint
-      const res = await fetch(`${API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ username, password})
-      });
+    // Try parsing the response
+    const data = await res.json().catch(() => ({}));
+    console.log('Response:', res.status, data); // 👈 This helps debugging
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        const msg = data?.error ?? 'Sign in failed.';
-        serverErr = msg;
-        return;
-      }
-
-      // Save token locally
-      localStorage.setItem('sessionToken', data.token);
-
-      // Redirect after successful login
-      goto('/therapist');
-    } catch (err) {
-      console.error(err);
-      serverErr = 'Network error. Please try again.';
+    // Handle any bad HTTP codes (401, 500, etc.)
+    if (!res.ok) {
+      serverErr = data?.error ?? `Login failed (code ${res.status})`;
+      return;
     }
+
+    // Handle success case — check if token exists
+    if (data?.token) {
+      localStorage.setItem('sessionToken', data.token);
+      console.log('Redirecting to /landing...');
+      goto('/landing');
+      return;
+    }
+
+    // Handle unexpected structure
+    serverErr = 'Login succeeded, but no token was returned.';
+  } catch (err) {
+    console.error('Network error:', err);
+    serverErr = 'Network error. Please try again.';
   }
+}
 </script>
 
 <main class="container" style="min-height:calc(100vh - 160px);display:grid;place-items:center;padding:40px 24px">
