@@ -64,17 +64,6 @@
     </div>
   </section>
 
-  <!-- Roles -->
-  <section id="roles" class="roles container">
-    <h2>Choose your role</h2>
-    <div class="role-grid">
-      <a class="role" href="/login"><h3>Therapist</h3><p>Review sessions, assign forms, track outcomes.</p></a>
-      <a class="role" href="/login"><h3>Coordinator</h3><p>Manage projects, groups, and study form sets.</p></a>
-      <a class="role" href="/login"><h3>Participant</h3><p>Complete forms and view your progress.</p></a>
-      <a class="role" href="/login"><h3>Admin</h3><p>Manage users, permissions, and settings.</p></a>
-    </div>
-  </section>
-
   <!-- Contact / CTA -->
   <section id="contact" class="cta container">
     <div class="cta-card">
