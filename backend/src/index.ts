@@ -108,7 +108,7 @@ app.post('/login', async (context) => {
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
     } catch (err: any) {
         console.error(err);
-        context.status(500);
+        context.status(422);
         return context.json({ success: false,  error: err.message });
     }
 
