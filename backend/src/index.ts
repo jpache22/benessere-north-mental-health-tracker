@@ -66,6 +66,7 @@ app.post('/login', async (context) => {
             return context.json({ success: false, foo: foo }, 401);
         }
 
+
         const payload = {
             userId: result.rows[0].userId,
             username: result.rows[0].username,
