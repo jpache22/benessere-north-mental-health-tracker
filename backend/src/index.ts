@@ -44,6 +44,9 @@ app.post('/login', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
 
+
+        //hash password
+        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), "$2b$10$aGeTwj/NtHcu4heQnKyqbu");
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
@@ -57,27 +60,21 @@ app.post('/login', async (context) => {
             return context.json({success: false}, 401);
         }
 
-        //hash password
-        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), result.rows[0].passwordsalt);
-
         //compare the password, and return 401 if not a match
         if (hashedPassword !== result.rows[0].password) {
             return context.json({ success: false, foo: foo }, 401);
         }
 
-        const secret = new TextEncoder().encode(context.env.JWT_SECRET);
-
         const payload = {
-            userId: result.rows[0].id,
+            userId: result.rows[0].userId,
             username: result.rows[0].username,
             role: result.rows[0].role
         };
 
-        const jwtToken = await new jose.SignJWT(payload)
-            .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
-            .setIssuer('BenessereNorth')
-            .setExpirationTime('1h')
-            .sign(secret);
+
+
+        // upgrade tokens to real jwt's
+        const jwtToken = jwt.sign(payload, context.env.JWT_SECRET, { expiresIn: '1h' });
 
         //return a token if they match, with a 200 code
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
@@ -94,24 +91,22 @@ app.post('/register', async (context) => {
     try {
         const body = await context.req.json(); // Parse JSON body
 
-        const { username, password, email } = body;
+        const { username, password } = body;
 
-        if (!username || !password || !email) {
+        if (!username || !password) {
             return context.json({ success: false, error: 'Missing name or password' }, 400);
         }
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
 
-
-        const salt = await bcrypt.genSalt(10);
         //hash password
-        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), salt);
+        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), "$2b$10$aGeTwj/NtHcu4heQnKyqbu");
 
         //get saved hashed password from db
         const result = await pool.query(
-            'INSERT INTO Users (username, password, passwordsalt, email) VALUES ($1, $2, $3, $4) RETURNING id',
-            [username, hashedPassword, salt, email]
+            'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
+            [username, hashedPassword]
 
         );
 
