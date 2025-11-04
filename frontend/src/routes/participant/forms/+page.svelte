@@ -47,7 +47,7 @@
   $: severityLevel = getSeverityLevel(totalScore);
 
   function getSeverityLevel(score) {
-    if (score <= 4) return { level: 'None-minimal', color: '#22c55e', description: 'Minimal depression' };
+    if (score <= 4) return { level: 'Minimal', color: '#22c55e', description: 'Minimal depression' };
     if (score <= 9) return { level: 'Mild', color: '#84cc16', description: 'Mild depression' };
     if (score <= 14) return { level: 'Moderate', color: '#eab308', description: 'Moderate depression' };
     if (score <= 19) return { level: 'Moderately Severe', color: '#f97316', description: 'Moderately severe depression' };
@@ -88,10 +88,8 @@
 
       console.log('Submitting PHQ-9 form:', formData);
 
-      // Get API URL from environment variable or use localhost for development
+     
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8787';
-      
-      // Make the API call to submit the form
       const response = await fetch(`${apiUrl}/phq9`, {
         method: 'POST',
         headers: {
