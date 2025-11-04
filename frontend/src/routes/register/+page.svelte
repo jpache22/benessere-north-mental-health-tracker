@@ -1,7 +1,10 @@
 <script>
   import { goto } from '$app/navigation';
 
-  // form fields
+  // Backend API endpoint
+  const API_URL = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register";
+
+  // Form fields
   let username = '';
   let email = '';
   let password = '';
@@ -15,20 +18,37 @@
     message = '';
     loading = true;
 
+    // Validation
     if (password !== confirmPassword) {
       message = 'Passwords do not match.';
       loading = false;
       return;
     }
 
-    // later will connect to: /api/auth/register
     try {
-      console.log('Registering user:', { username, email, role });
-      await new Promise((r) => setTimeout(r, 500)); // fake delay
-      message = 'Registration successful! Redirecting to login...';
-      setTimeout(() => goto('/login'), 1200);
+      // Send registration data to backend
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          password,
+          email,
+          role
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        message = 'Registration successful! Redirecting to login...';
+        setTimeout(() => goto('/login'), 1500);
+      } else {
+        message = data.error || 'Registration failed. Please try again.';
+      }
     } catch (err) {
-      message = 'Registration failed. Please try again.';
+      console.error(err);
+      message = 'Network error. Please try again.';
     } finally {
       loading = false;
     }

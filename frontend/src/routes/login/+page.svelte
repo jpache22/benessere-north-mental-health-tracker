@@ -1,6 +1,10 @@
 <script>
   import { goto } from '$app/navigation';
 
+  // Backend URL
+  const API_BASE = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
+
+
   let username = '';
   let password = '';
   let remember = false;
@@ -13,6 +17,7 @@
     e.preventDefault();
     userErr = passErr = serverErr = '';
 
+    // Basic input validation
     if (!username.trim()) userErr = 'Please enter your username.';
     if (!password.trim()) passErr = 'Please enter your password.';
     else if (password.length < 6) passErr = 'Password must be at least 6 characters.';
@@ -20,21 +25,28 @@
     if (userErr || passErr) return;
 
     try {
-      const res = await fetch('/api/auth/login', {
+      // Call backend login endpoint
+      const res = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ username, password, remember })
+        body: JSON.stringify({ username, password})
       });
 
-      if (!res.ok) {
-        const msg = (await res.json().catch(() => null))?.error ?? 'Sign in failed.';
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        const msg = data?.error ?? 'Sign in failed.';
         serverErr = msg;
         return;
       }
 
-      // success → go to therapist dashboard
+      // Save token locally
+      localStorage.setItem('sessionToken', data.token);
+
+      // Redirect after successful login
       goto('/therapist');
-    } catch {
+    } catch (err) {
+      console.error(err);
       serverErr = 'Network error. Please try again.';
     }
   }
