@@ -73,8 +73,6 @@ app.post('/login', async (context) => {
             role: result.rows[0].role
         };
 
-
-
         // upgrade tokens to real jwt's
         const jwtToken = jwt.sign(payload, context.env.JWT_SECRET, { expiresIn: '1h' });
 
