@@ -13,11 +13,11 @@
     }
   ], 
   "vars": {
-     "MAIN_PAGES_URL": "https://benessere-north-mental-health-tracker.pages.dev/",
+     "MAIN_PAGES_URL": "https://benessere-north-mental-health-tracker.pages.dev",
      "JULISSA_DEV_PAGES_URL": "https://dev-julissa.benessere-north-mental-health-tracker.pages.dev",
      "JMASER_DEV_PAGES_URL": "https://dev-jack.benessere-north-mental-health-tracker.pages.dev",
-     "ANDY_DEV_PAGES_URL": "https://dev-andy.benessere-north-mental-health-tracker.pages.dev/",
-     "SHAWN_DEV_PAGES_URL": "https://dev-shawn.benessere-north-mental-health-tracker.pages.dev/"
+     "ANDY_DEV_PAGES_URL": "https://dev-andy.benessere-north-mental-health-tracker.pages.dev",
+     "SHAWN_DEV_PAGES_URL": "https://dev-shawn.benessere-north-mental-health-tracker.pages.dev"
    }
 
   // "kv_namespaces": [
