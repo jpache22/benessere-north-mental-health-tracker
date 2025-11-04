@@ -19,7 +19,8 @@ app.use('*', async(context, next) => { // next is a function that tells hono to 
         context.env.JULISSA_DEV_PAGES_URL, 
         context.env.JMASER_DEV_PAGES_URL,
         context.env.ANDY_DEV_PAGES_URL,
-        context.env.SHAWN_DEV_PAGES_URL
+        context.env.SHAWN_DEV_PAGES_URL,
+        'https://dev-shawn.benessere-north-mental-health-tracker.pages.dev'
     ],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     allowHeaders: ['Authorization', 'Content-Type'],
