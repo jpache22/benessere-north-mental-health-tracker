@@ -44,13 +44,12 @@ app.post('/login', async (context) => {
         const pool = getPool(connectionString);
 
 
-        //hash password
-        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), "$2b$10$aGeTwj/NtHcu4heQnKyqbu");
+
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
             //[username, password]
-            'SELECT password FROM users WHERE username = $1 LIMIT 1',
+            'SELECT password, passwordsalt FROM users WHERE username = $1 LIMIT 1',
             [username]
         );
 
@@ -59,18 +58,20 @@ app.post('/login', async (context) => {
             return context.json({success: false}, 401);
         }
 
+        //hash password
+        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), result.rows[0].passwordsalt);
+
         //compare the password, and return 401 if not a match
         if (hashedPassword !== result.rows[0].password) {
             return context.json({ success: false, foo: foo }, 401);
         }
+
 
         const payload = {
             userId: result.rows[0].userId,
             username: result.rows[0].username,
             role: result.rows[0].role
         };
-
-
 
         // upgrade tokens to real jwt's
         const jwtToken = jwt.sign(payload, context.env.JWT_SECRET, { expiresIn: '1h' });
@@ -79,8 +80,7 @@ app.post('/login', async (context) => {
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
     } catch (err: any) {
         console.error(err);
-        context.status(500);
-        return context.json({ success: false,  error: err.message });
+        return context.json({ success: false, error: err.message }, 500);
     }
 
 
@@ -100,13 +100,14 @@ app.post('/register', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
 
+        const salt = await bcrypt.genSalt(10);
         //hash password
-        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), "$2b$10$aGeTwj/NtHcu4heQnKyqbu");
+        const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), salt);
 
         //get saved hashed password from db
         const result = await pool.query(
-            'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
-            [username, hashedPassword]
+            'INSERT INTO Users (username, password, passwordsalt) VALUES ($1, $2, $3) RETURNING id',
+            [username, hashedPassword, salt]
 
         );
 
