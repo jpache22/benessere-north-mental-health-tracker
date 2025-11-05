@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
+import { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { Bindings } from './types';
 import * as bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 import { getPool } from './db/pool';
 import phq9 from './forms/phq9';
 import groups from './db/groups';
@@ -43,8 +44,6 @@ app.post('/login', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
 
-
-
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
@@ -66,15 +65,19 @@ app.post('/login', async (context) => {
             return context.json({ success: false, foo: foo }, 401);
         }
 
+        const secret = new TextEncoder().encode(context.env.JWT_SECRET);
 
         const payload = {
-            userId: result.rows[0].userId,
+            userId: result.rows[0].id,
             username: result.rows[0].username,
             role: result.rows[0].role
         };
 
-        // upgrade tokens to real jwt's
-        const jwtToken = jwt.sign(payload, context.env.JWT_SECRET, { expiresIn: '1h' });
+        const jwtToken = await new jose.SignJWT(payload)
+            .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+            .setIssuer('BenessereNorth')
+            .setExpirationTime('1h')
+            .sign(secret);
 
         //return a token if they match, with a 200 code
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
@@ -91,14 +94,15 @@ app.post('/register', async (context) => {
     try {
         const body = await context.req.json(); // Parse JSON body
 
-        const { username, password } = body;
+        const { username, password, email } = body;
 
-        if (!username || !password) {
+        if (!username || !password || !email) {
             return context.json({ success: false, error: 'Missing name or password' }, 400);
         }
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
+
 
         const salt = await bcrypt.genSalt(10);
         //hash password
@@ -106,8 +110,8 @@ app.post('/register', async (context) => {
 
         //get saved hashed password from db
         const result = await pool.query(
-            'INSERT INTO Users (username, password, passwordsalt) VALUES ($1, $2, $3) RETURNING id',
-            [username, hashedPassword, salt]
+            'INSERT INTO Users (username, password, passwordsalt, email) VALUES ($1, $2, $3, $4) RETURNING id',
+            [username, hashedPassword, salt, email]
 
         );
 
@@ -120,6 +124,49 @@ app.post('/register', async (context) => {
 
 });
 
+
+export async function check_auth_token(context: Context) {
+    try {
+        //Get Authorization header
+        const authHeader = context.req.header('authorization');
+
+        if (!authHeader) {
+            console.warn("Missing Authorization header");
+            return null;
+        }
+
+        //Check for "Bearer " prefix
+        if (!authHeader.startsWith("Bearer ")) {
+            console.warn("Authorization header missing 'Bearer' prefix");
+            return null;
+        }
+
+        //Extract the JWT token
+        const jwt = authHeader.substring("Bearer ".length).trim();
+        if (!jwt) {
+            console.warn("Empty JWT after trimming");
+            return null;
+        }
+
+        //Prepare the secret (must be Uint8Array for jose)
+        const secret = new TextEncoder().encode(context.env.JWT_SECRET);
+
+        //Verify the token (throws if invalid, expired, or signature mismatch)
+        const { payload } = await jose.jwtVerify(jwt, secret, {
+            issuer: "BenessereNorth",   // match the issuer you used in jwt.sign
+        });
+
+        //Return decoded payload
+        return payload;
+
+    } catch (err: any) {
+        // Catch decoding or verification errors
+        console.error("JWT verification failed:", err.message);
+        return null;
+    }
+}
+
+
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
@@ -129,3 +176,7 @@ app.route('/phq9', phq9);
 
 
 export default app
+
+
+//delete when done used for local testing
+//check_auth_token("{ 'req': { 'hedaers': ['Authorization': 'bearer foo']} }")
