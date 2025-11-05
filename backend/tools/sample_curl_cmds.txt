@@ -1,0 +1,12 @@
+use this on the commandline or ssh
+
+USE FOR CMD: (note syntax)
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register -H "Content-Type: application/json" -d "{\"username\":\"Jack2\", \"password\":\"helloWorld\"}"
+
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/login -H "Content-Type: application/json" -d "{\"username\":\"Jack2\", \"password\":\"helloWorld\"}"
+
+
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/login -H "Content-Type: application/json" -d "{\"username\":\"andy\", \"password\":\"helloWorld\"}"
+
+
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register -H "Content-Type: application/json" -d "{\"username\":\"andy\", \"password\":\"helloWorld\"}"
