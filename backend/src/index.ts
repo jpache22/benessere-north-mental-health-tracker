@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { Context } from 'hono';
 import { cors } from 'hono/cors';
 import { Bindings } from './types';
 import * as bcrypt from 'bcryptjs';
@@ -123,6 +124,49 @@ app.post('/register', async (context) => {
 
 });
 
+
+export async function check_auth_token(context: Context) {
+    try {
+        //Get Authorization header
+        const authHeader = context.req.header('authorization');
+
+        if (!authHeader) {
+            console.warn("Missing Authorization header");
+            return null;
+        }
+
+        //Check for "Bearer " prefix
+        if (!authHeader.startsWith("Bearer ")) {
+            console.warn("Authorization header missing 'Bearer' prefix");
+            return null;
+        }
+
+        //Extract the JWT token
+        const jwt = authHeader.substring("Bearer ".length).trim();
+        if (!jwt) {
+            console.warn("Empty JWT after trimming");
+            return null;
+        }
+
+        //Prepare the secret (must be Uint8Array for jose)
+        const secret = new TextEncoder().encode(context.env.JWT_SECRET);
+
+        //Verify the token (throws if invalid, expired, or signature mismatch)
+        const { payload } = await jose.jwtVerify(jwt, secret, {
+            issuer: "BenessereNorth",   // match the issuer you used in jwt.sign
+        });
+
+        //Return decoded payload
+        return payload;
+
+    } catch (err: any) {
+        // Catch decoding or verification errors
+        console.error("JWT verification failed:", err.message);
+        return null;
+    }
+}
+
+
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
@@ -132,3 +176,7 @@ app.route('/phq9', phq9);
 
 
 export default app
+
+
+//delete when done used for local testing
+//check_auth_token("{ 'req': { 'hedaers': ['Authorization': 'bearer foo']} }")
