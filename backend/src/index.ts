@@ -43,12 +43,11 @@ app.post('/login', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
 
-
         //get saved hashed password from db
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
             //[username, password]
-            'SELECT password FROM users WHERE username = $1 LIMIT 1',
+            'SELECT password, passwordsalt FROM users WHERE username = $1 LIMIT 1',
             [username]
         );
 
@@ -83,8 +82,7 @@ app.post('/login', async (context) => {
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
     } catch (err: any) {
         console.error(err);
-        context.status(500);
-        return context.json({ success: false,  error: err.message });
+        return context.json({ success: false, error: err.message }, 500);
     }
 
 
