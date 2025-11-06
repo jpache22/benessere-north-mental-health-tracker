@@ -9,7 +9,6 @@
   let email = '';
   let password = '';
   let confirmPassword = '';
-  let role = 'participant';
   let message = '';
   let loading = false;
 
@@ -19,6 +18,12 @@
     loading = true;
 
     // Validation
+    if (!username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      message = 'Please fill in all fields.';
+      loading = false;
+      return;
+    }
+
     if (password !== confirmPassword) {
       message = 'Passwords do not match.';
       loading = false;
@@ -26,28 +31,26 @@
     }
 
     try {
-      // Send registration data to backend
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username,
           password,
-          email,
-          role
+          email
         })
       });
 
       const data = await res.json();
 
       if (data.success) {
-        message = 'Registration successful! Redirecting to login...';
+        message = '✅ Registration successful! Redirecting to login...';
         setTimeout(() => goto('/login'), 1500);
       } else {
         message = data.error || 'Registration failed. Please try again.';
       }
     } catch (err) {
-      console.error(err);
+      console.error('Register error:', err);
       message = 'Network error. Please try again.';
     } finally {
       loading = false;
