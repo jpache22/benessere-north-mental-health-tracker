@@ -1,9 +1,8 @@
 <script>
   import { goto } from '$app/navigation';
 
-  // Backend URL
+  // Cloudflare backend endpoint
   const API_BASE = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
-
 
   let username = '';
   let password = '';
@@ -13,48 +12,52 @@
   let passErr = '';
   let serverErr = '';
 
-async function onSubmit(e) {
-  e.preventDefault();
-  userErr = passErr = serverErr = '';
+  async function onSubmit(e) {
+    e.preventDefault();
+    userErr = passErr = serverErr = '';
 
-  // Basic input validation
-  if (!username.trim()) userErr = 'Please enter your username.';
-  if (!password.trim()) passErr = 'Please enter your password.';
-  else if (password.length < 6) passErr = 'Password must be at least 6 characters.';
-  if (userErr || passErr) return;
+    // Input validation
+    if (!username.trim()) userErr = 'Please enter your username.';
+    if (!password.trim()) passErr = 'Please enter your password.';
+    else if (password.length < 6) passErr = 'Password must be at least 6 characters.';
+    if (userErr || passErr) return;
 
-  try {
-    const res = await fetch(`${API_BASE}/login`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
 
-    // Try parsing the response
-    const data = await res.json().catch(() => ({}));
-    console.log('Response:', res.status, data); // 👈 This helps debugging
+      const data = await res.json().catch(() => ({}));
+      console.log('Login response:', res.status, data);
 
-    // Handle any bad HTTP codes (401, 500, etc.)
-    if (!res.ok) {
-      serverErr = data?.error ?? `Login failed (code ${res.status})`;
-      return;
+      // Backend may send success: false even with 200
+      if (!data.success) {
+        serverErr = data.error || 'Invalid username or password.';
+        return;
+      }
+
+      // Success case: store JWT and userId
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('userId', data.userId);
+
+        // Optional: persist token if "remember me" checked
+        if (remember) {
+          document.cookie = `authToken=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+        }
+
+        console.log('✅ Login successful, redirecting to dashboard...');
+        goto('/therapist-dashboard'); // or whatever route matches their role
+      } else {
+        serverErr = 'Login succeeded, but no token was returned.';
+      }
+    } catch (err) {
+      console.error('Network error:', err);
+      serverErr = 'Network error. Please try again.';
     }
-
-    // Handle success case — check if token exists
-    if (data?.token) {
-      localStorage.setItem('sessionToken', data.token);
-      console.log('Redirecting to /landing...');
-      goto('/landing');
-      return;
-    }
-
-    // Handle unexpected structure
-    serverErr = 'Login succeeded, but no token was returned.';
-  } catch (err) {
-    console.error('Network error:', err);
-    serverErr = 'Network error. Please try again.';
   }
-}
 </script>
 
 <main class="container" style="min-height:calc(100vh - 160px);display:grid;place-items:center;padding:40px 24px">
