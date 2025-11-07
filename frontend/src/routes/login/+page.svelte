@@ -49,7 +49,7 @@
         }
 
         console.log('✅ Login successful, redirecting to dashboard...');
-        goto('/therapist-dashboard'); // or whatever route matches their role
+        goto('/landing'); 
       } else {
         serverErr = 'Login succeeded, but no token was returned.';
       }
