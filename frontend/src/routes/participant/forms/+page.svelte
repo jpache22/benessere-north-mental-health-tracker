@@ -31,9 +31,25 @@
   let successMessage = '';
   let showConfirmation = false;
 
-  // TODO: Get actual userId from authentication/session
-  // For now using hardcoded value - replace with actual user authentication
-  const userId = 1;
+  import { browser } from '$app/environment';
+
+  // Get userId from localStorage (set during login)
+  let userId = null;
+  let authToken = null;
+
+  onMount(() => {
+  if (browser) {
+    authToken = localStorage.getItem('authToken');
+    const storedUserId = localStorage.getItem('userId');
+    userId = storedUserId ? parseInt(storedUserId) : null;
+    
+    // Redirect to login if not authenticated
+    if (!userId || !authToken) {
+      goto('/login');
+      return;
+    }
+  }
+  });
 
   // Calculate total score when answers change
   $: {
@@ -94,6 +110,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify(formData)
       });
