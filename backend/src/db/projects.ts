@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getPool } from '../db/pool';
 import { Bindings } from '../types';
+import { ProjectRequest } from '../types';
 
 const projects = new Hono<{Bindings: Bindings}>();
 
@@ -82,22 +83,8 @@ projects.post('/', async(context) => {
     const data = await context.req.json(); // get the data from the post request
     const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
 
-    const {
-      expiry_date,
-      label,
-      num_of_therapy_sessions,
-      session_forms,
-      screening_forms,
-      pre_group_forms,
-      post_group_forms
-    } = data;
-
-    // validate the inputs
-    if (expiry_date === undefined || label === undefined || num_of_therapy_sessions === undefined || session_forms === undefined || post_group_forms === undefined) {
-        return context.json({ success: false, error: "Missing required fields"}, 400);
-    }
-
     try {
+        const validData = ProjectRequest.parse(data);
         const result = await connectionPool.query(
             `INSERT INTO public."projects" (
                 expiry_date,
@@ -110,13 +97,13 @@ projects.post('/', async(context) => {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING project_id;`,
             [
-                expiry_date,
-                label,
-                num_of_therapy_sessions,
-                session_forms,
-                post_group_forms,
-                screening_forms ?? null,
-                pre_group_forms ?? null
+                validData.expiry_date,
+                validData.label,
+                validData.num_of_therapy_sessions,
+                validData.session_forms,
+                validData.post_group_forms,
+                validData.screening_forms ?? null,
+                validData.pre_group_forms ?? null
             ]
         );
         return context.json(({ success: true, project_id: result.rows[0].project_id }));

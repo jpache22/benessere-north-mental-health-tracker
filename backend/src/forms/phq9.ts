@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getPool } from '../db/pool';
 import { Bindings } from '../types';
+import { PHQ9Request } from '../types';
 
 const phq9 = new Hono<{Bindings: Bindings}>();
 
@@ -90,28 +91,11 @@ phq9.post('/', async(context) => {
     const data = await context.req.json();
     const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
 
-    const {
-        user_id,
-        q1,
-        q2,
-        q3,
-        q4,
-        q5,
-        q6,
-        q7,
-        q8,
-        q9  
-    } = data;
-
-    // validate inputs
-    if (user_id === undefined || [q1, q2, q3, q4, q5, q6, q7, q8, q9].some(v => v === undefined)) {
-        return context.json({ success: false, error: "Missing required fields" }, 400);
-    }
-
-
     try {
+        // validate data
+        const validData = PHQ9Request.parse(data); // will throw error if invalid
         // determine total score and depression severity
-        const total_score = data.q1 + data.q2 + data.q3 + data.q4 + data.q5 + data.q6 + data.q7 + data.q8 + data.q9;
+        const total_score = validData.q1 + validData.q2 + validData.q3 + validData.q4 + validData.q5 + validData.q6 + validData.q7 + validData.q8 + validData.q9;
         const depression_severity = getDepressionSeverity(total_score);
         const completion_date = new Date().toISOString();
         // query the data base
@@ -120,17 +104,17 @@ phq9.post('/', async(context) => {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING form_submission_id;`, // may need to remove this not sure if it works
             [
-                user_id,
+                validData.user_id,
                 completion_date,
-                q1,
-                q2,
-                q3,
-                q4,
-                q5,
-                q6,
-                q7,
-                q8,
-                q9,
+                validData.q1,
+                validData.q2,
+                validData.q3,
+                validData.q4,
+                validData.q5,
+                validData.q6,
+                validData.q7,
+                validData.q8,
+                validData.q9,
                 total_score,
                 depression_severity
             ]
