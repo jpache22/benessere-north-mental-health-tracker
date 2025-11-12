@@ -31,25 +31,26 @@
   let successMessage = '';
   let showConfirmation = false;
 
-  import { browser } from '$app/environment';
+  // import { browser } from '$app/environment'
 
   // Get userId from localStorage (set during login)
-  let userId = null;
-  let authToken = null;
+  //let userId = null;
+  //let authToken = null;
 
-  onMount(() => {
-  if (browser) {
-    authToken = localStorage.getItem('authToken');
-    const storedUserId = localStorage.getItem('userId');
-    userId = storedUserId ? parseInt(storedUserId) : null;
-    
+  //onMount(() => {
+  //if (browser) {
+  //  authToken = localStorage.getItem('authToken');
+  //  const storedUserId = localStorage.getItem('userId');
+  //  userId = storedUserId ? parseInt(storedUserId) : null;
+  //  
     // Redirect to login if not authenticated
-    if (!userId || !authToken) {
-      goto('/login');
-      return;
-    }
-  }
-  });
+  //  if (!userId || !authToken) {
+  //    goto('/login');
+  //    return;
+  //   }
+  // }
+  // });
+  let userId = 0;
 
   // Calculate total score when answers change
   $: {
@@ -110,7 +111,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
+          //'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify(formData)
       });
