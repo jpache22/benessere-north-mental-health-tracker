@@ -58,42 +58,48 @@
   }
 
   // Fetch real completed forms data
-  async function fetchCompletedForms() {
-    isLoading = true;
-    try {
-      // TODO: Replace with actual user ID from authentication
-      const userId = 1;
-      const apiUrl = import.meta.env.VITE_API_URL;
+async function fetchCompletedForms() {
+  isLoading = true;
+  try {
+    // Use the same test user as the form submission
+    const userId = 20;  
+    const apiUrl = import.meta.env.VITE_API_URL;
+    
+    console.log('Fetching PHQ-9 data for user:', userId); // Debug log
+    
+    // Fetch PHQ-9 data for this user
+    const response = await fetch(`${apiUrl}/phq9/${userId}`);
+    
+    console.log('Response status:', response.status); // Debug log
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Response data:', data); // Debug log
       
-      // Fetch PHQ-9 data for this user
-      const response = await fetch(`${apiUrl}/phq9/${userId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.phq9) {
-          // Transform the data to match our display format
-          completedForms = data.phq9.map(form => ({
-            id: form.form_submission_id,
-            name: 'PHQ-9',
-            assigned: new Date(form.completion_date).toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric' 
-            }),
-            score: `${form.total_score}/27`,
-            severity: form.depression_severity,
-            rawData: form
-          }));
-        }
+      if (data.success && data.phq9) {
+        // Transform the data to match our display format
+        completedForms = data.phq9.map(form => ({
+          id: form.form_submission_id,
+          name: 'PHQ-9',
+          assigned: new Date(form.completion_date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }),
+          score: `${form.total_score}/27`,
+          severity: form.depression_severity,
+          rawData: form
+        }));
+        console.log('Completed forms:', completedForms); // Debug log
       }
-    } catch (error) {
-      console.error('Error fetching completed forms:', error);
-      // Keep the completed forms empty if there's an error
-      completedForms = [];
-    } finally {
-      isLoading = false;
     }
+  } catch (error) {
+    console.error('Error fetching completed forms:', error);
+    completedForms = [];
+  } finally {
+    isLoading = false;
   }
+}
 
   // Fetch data on component mount
   onMount(() => {

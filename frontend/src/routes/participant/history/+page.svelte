@@ -1,16 +1,63 @@
 <!-- src/routes/participant/history/+page.svelte -->
 <script>
-  // Mock data - replace with real data from API
-  let forms = [
-    { name: 'PHQ-9', date: 'Aug 25, 2025', score: '12/27', status: 'mild', statusColor: '#fb923c' },
-    { name: 'GAD-7', date: 'Aug 08, 2025', score: '12/27', status: 'normal', statusColor: '#22c55e' },
-    { name: 'EPDS', date: 'Jun 01, 2025', score: '10/30', status: 'draft', statusColor: '#94a3b8', progress: 60 },
-    { name: 'Q-LES', date: 'May 25, 2025', score: '12/27', status: 'moderate', statusColor: '#eab308' }
-  ];
+  import { onMount } from 'svelte';
+
+  let forms = [];
+  let isLoading = false;
 
   let filterForm = 'all';
   let filterTime = 'last6';
   let searchQuery = '';
+
+  // Fetch user's PHQ-9 submissions
+  async function fetchForms() {
+    isLoading = true;
+    try {
+      const userId = 20;
+      const apiUrl = import.meta.env.VITE_API_URL;
+      
+      console.log('Fetching forms for user:', userId);
+      
+      const response = await fetch(`${apiUrl}/phq9/${userId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('History data:', data);
+        
+        if (data.success && data.phq9) {
+          forms = data.phq9.map(form => ({
+            name: 'PHQ-9',
+            date: new Date(form.completion_date).toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric' 
+            }),
+            score: `${form.total_score}/27`,
+            status: form.depression_severity,
+            statusColor: getSeverityColor(form.depression_severity),
+            rawScore: form.total_score,
+            rawData: form
+          }));
+          console.log('Processed forms:', forms);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching forms:', error);
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function getSeverityColor(severity) {
+    const colors = {
+      'None-minimal': '#22c55e',
+      'Mild': '#fb923c',
+      'Moderate': '#eab308',
+      'Moderately Severe': '#f97316',
+      'Severe': '#ef4444'
+    };
+    return colors[severity] || '#94a3b8';
+  }
 
   $: filtered = forms.filter(f => {
     if (filterForm !== 'all' && f.name !== filterForm) return false;
@@ -18,17 +65,19 @@
     return true;
   });
 
-  // Calculate trend data for selected form
-  let selectedForm = 'PHQ-9';
-  let trendData = [
-    { date: 'May 11', score: 3 },
-    { date: 'Jun 18', score: 9 },
-    { date: 'Jul 1', score: 15 },
-    { date: 'Aug 8', score: 5 }
-  ];
+  // Calculate trend data from actual submissions
+  $: trendData = forms.map(form => ({
+    date: form.date,
+    score: form.rawScore
+  }));
 
+  let selectedForm = 'PHQ-9';
   let showAllForms = false;
   let compareForms = false;
+
+  onMount(() => {
+    fetchForms();
+  });
 </script>
 
 <section class="form-history">
