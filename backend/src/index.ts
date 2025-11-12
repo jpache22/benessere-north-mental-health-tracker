@@ -19,8 +19,7 @@ app.use('*', async(context, next) => { // next is a function that tells hono to 
         context.env.JULISSA_DEV_PAGES_URL, 
         context.env.JMASER_DEV_PAGES_URL,
         context.env.ANDY_DEV_PAGES_URL,
-        context.env.SHAWN_DEV_PAGES_URL,
-        'https://dev-shawn.benessere-north-mental-health-tracker.pages.dev'
+        context.env.SHAWN_DEV_PAGES_URL
     ],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     allowHeaders: ['Authorization', 'Content-Type'],
@@ -75,7 +74,12 @@ app.post('/login', async (context) => {
 
 
         // upgrade tokens to real jwt's
-        const jwtToken = jwt.sign(payload, context.env.JWT_SECRET, { expiresIn: '1h' });
+        const secret = new TextEncoder().encode(context.env.JWT_SECRET);
+        const jwtToken = await new jose.SignJWT(payload)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer('BenessereNorth')
+        .setExpirationTime('1h')
+        .sign(secret);
 
         //return a token if they match, with a 200 code
         return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
