@@ -30,11 +30,10 @@
   let errorMessage = '';
   let successMessage = '';
   let showConfirmation = false;
-
+  let userId = 20;
   // import { browser } from '$app/environment'
 
   // Get userId from localStorage (set during login)
-  //let userId = null;
   //let authToken = null;
 
   //onMount(() => {
@@ -50,7 +49,7 @@
   //   }
   // }
   // });
-  let userId = 0;
+
 
   // Calculate total score when answers change
   $: {
