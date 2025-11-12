@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { getPool } from '../db/pool';
-import { Bindings } from '../types';
+import { Bindings, PHQ9Request } from '../types';
 
 const phq9 = new Hono<{Bindings: Bindings}>();
 
