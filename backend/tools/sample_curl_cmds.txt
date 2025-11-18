@@ -13,3 +13,7 @@ curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-sc
 
 
 curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register -H "Content-Type: application/json" -H "Authorization: bearer eyregfdgd.fg.fdgdfgfd" -d "{\"username\":\"andy\", \"password\":\"helloWorld\"}"
+
+
+with email register
+> curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register -H "Content-Type: application/json" -d "{\"username\":\"Jack2\", \"password\":\"helloWorld\", \"email\":\"jmaser@asu.edu\"}"

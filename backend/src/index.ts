@@ -110,8 +110,8 @@ app.post('/register', async (context) => {
 
         //get saved hashed password from db
         const result = await pool.query(
-            'INSERT INTO Users (username, password, passwordsalt, email) VALUES ($1, $2, $3, $4) RETURNING id',
-            [username, hashedPassword, salt, email]
+            'INSERT INTO Users (username, password, passwordsalt, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [username, hashedPassword, salt, email, "patient"]
 
         );
 
@@ -123,6 +123,39 @@ app.post('/register', async (context) => {
 
 
 });
+
+
+///TEST FUNCTION
+async function testCheckAuthToken() {
+    // Create a JWT for testing
+    const secret = new TextEncoder().encode("supersecret");
+    const jwt = await new jose.SignJWT({ userId: 123, role: "admin" })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer("BenessereNorth")
+        .setExpirationTime('2h')
+        .sign(secret);
+
+    // Mock context
+    const context = {
+        req: {
+            header: (name: string) => {
+                if (name.toLowerCase() === 'authorization') {
+                    return `Bearer ${jwt}`;
+                }
+                return null;
+            }
+        },
+        env: {
+            JWT_SECRET: "supersecret"
+        }
+    } as any;
+
+    // Test the function
+    const payload = await check_auth_token(context);
+    console.log("Decoded payload:", payload);
+}
+
+testCheckAuthToken();
 
 
 export async function check_auth_token(context: Context) {
@@ -167,6 +200,84 @@ export async function check_auth_token(context: Context) {
 }
 
 
+app.get('/adminUpdateTable', async (context) => {
+
+    try {
+        //check to make sure caller as access to this data
+        if (await check_auth_token(context) == null) {
+            //if returns null then caller does not have clearance return unauthorized
+            return context.json({success: false}, 401);
+        }
+        const body = await context.req.json(); // Parse JSON body
+
+        //ROGER: fix this logic
+
+        //is this needed? i dont think so - jm
+        const { username, password } = body;
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        const pool = getPool(connectionString);
+
+        //get saved hashed password from db
+        const result = await pool.query(
+            //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
+            //[username, password]
+            'SELECT id, username, email, role FROM users'
+        );
+
+        return context.json({ success: true, payload: result.rows})
+    } catch (err : any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    }
+
+});
+
+app.post('/userUpdate', async (context) => {
+    try {
+        //check to make sure caller as access to this data
+        if (await check_auth_token(context) == null) {
+            //if returns null then caller does not have clearance return unauthorized
+            return context.json({success: false}, 401);
+        }
+
+        //ROGER: create logic to update users table
+
+        const body = await context.req.json(); // Parse JSON body
+
+        //ROGER: fix this logic
+
+
+        const { id, username, password, email, role } = body;
+
+        if(password != null){
+            //ROGER rehash password??
+        }
+
+
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        const pool = getPool(connectionString);
+
+        //get saved hashed password from db
+        const result = await pool.query(
+            //update all columns where id = given id from frontend
+
+            'UPDATE users SET, email = $2, role = $3 WHERE id = $1',
+            [id, email, role]
+        );
+
+
+
+        //return 200 ok
+        return context.json({success:true}, 200);
+    }catch (err:any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    }
+});
+
+
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
@@ -176,7 +287,3 @@ app.route('/phq9', phq9);
 
 
 export default app
-
-
-//delete when done used for local testing
-//check_auth_token("{ 'req': { 'hedaers': ['Authorization': 'bearer foo']} }")
