@@ -1,23 +1,71 @@
 <script>
-  // Eventually will fetch from backend: /api/admin/users
-  let users = []; // leave empty until DB integration
+  import { onMount } from 'svelte';
+
+  let users = [];
+  let filtered = [];
   let search = '';
   let roleFilter = 'all';
 
-  // Derived filtered users
+  let loading = true;
+  let errorMsg = '';
+
+  const API_URL =
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable";
+
+  // Load users when page starts
+  onMount(async () => {
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      errorMsg = "No admin token found. Please log in.";
+      loading = false;
+      return;
+    }
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        errorMsg = "Failed to load user list.";
+      } else {
+        users = data.payload.data.map(u => ({
+          id: u.id,
+          name: u.username,
+          email: u.email ?? "—",
+          role: u.role ?? "none",
+          status: "Active"
+        }));
+      }
+
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
+
+    loading = false;
+  });
+
+  // Update visible list when search or filters change
   $: filtered = users.filter((u) => {
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    const matchesSearch = !search || u.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      !search || u.name.toLowerCase().includes(search.toLowerCase());
     return matchesRole && matchesSearch;
   });
 
-  // Placeholders for future actions
+  // Placeholder until backend updates are ready
   function assignRole(userId, newRole) {
-    console.log('Assign role', userId, newRole);
+    console.log("Assign role", userId, newRole);
   }
 
   function resetPassword(userId) {
-    console.log('Reset password for user', userId);
+    console.log("Reset password for", userId);
   }
 </script>
 
@@ -41,15 +89,27 @@
         <option value="coordinator">Coordinator</option>
         <option value="therapist">Therapist</option>
         <option value="intake">Intake</option>
+        <option value="none">None</option>
       </select>
     </div>
   </header>
 
   <div class="card">
-    {#if users.length === 0}
+    {#if loading}
       <div class="empty">
-        <p>No users loaded. Connect to the database to view records.</p>
+        <p>Loading users...</p>
       </div>
+
+    {:else if errorMsg}
+      <div class="empty">
+        <p>{errorMsg}</p>
+      </div>
+
+    {:else if users.length === 0}
+      <div class="empty">
+        <p>No users found.</p>
+      </div>
+
     {:else}
       <div class="table-wrap">
         <table class="table">
@@ -67,6 +127,7 @@
               <tr>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
+
                 <td>
                   <select
                     class="input small"
@@ -77,9 +138,12 @@
                     <option value="coordinator">Coordinator</option>
                     <option value="therapist">Therapist</option>
                     <option value="intake">Intake</option>
+                    <option value="none">None</option>
                   </select>
                 </td>
-                <td>{user.status ?? 'Active'}</td>
+
+                <td>{user.status}</td>
+
                 <td class="right">
                   <button
                     class="btn small outline"
@@ -122,7 +186,8 @@
     border-collapse: collapse;
   }
 
-  th, td {
+  th,
+  td {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border);
     text-align: left;
