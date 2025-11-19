@@ -174,11 +174,6 @@ app.get('/adminUpdateTable', async (context) => {
             //if returns null then caller does not have clearance return unauthorized
             return context.json({success: false}, 401);
         }
-        const body = await context.req.json(); // Parse JSON body
-
-        //ROGER: fix this logic
-
-
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
         const pool = getPool(connectionString);
