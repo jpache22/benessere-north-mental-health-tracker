@@ -166,6 +166,41 @@ export async function check_auth_token(context: Context) {
     }
 }
 
+app.get('/adminFetchTable', async (context) => {
+
+    try {
+        //check to make sure caller as access to this data
+        if (await check_auth_token(context) == null) {
+            //if returns null then caller does not have clearance return unauthorized
+            return context.json({success: false}, 401);
+        }
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        const pool = getPool(connectionString);
+
+        //get saved hashed password from db
+        const result = await pool.query(
+            //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
+            //[username, password]
+            'SELECT id, username, email, role FROM users'
+        );
+
+
+        const payload = {
+            count: result.rows.length,
+            data: result.rows
+        };
+
+
+        return context.json({ success: true, payload: payload}, 200);
+    } catch (err : any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    }
+
+});
+
+
 
 // routes for groups and projects
 app.route('/groups', groups);
