@@ -22,6 +22,13 @@
       return;
     }
 
+    // Password is over 6 characters
+    if (password.length < 6) {
+    message = 'Password must be at least 6 characters long.';
+    loading = false;
+    return;
+    }
+
     if (password !== confirmPassword) {
       message = 'Passwords do not match.';
       loading = false;
