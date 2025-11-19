@@ -13,3 +13,6 @@ curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-sc
 
 
 curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register -H "Content-Type: application/json" -H "Authorization: bearer eyregfdgd.fg.fdgdfgfd" -d "{\"username\":\"andy\", \"password\":\"helloWorld\"}"
+
+//test adminFetchTable
+curl -v -X GET  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJCZW5lc3NlcmVOb3J0aCIsImV4cCI6MTc2MzUxNjQ5MH0.Y4W0hqP50zMVIq2ER8DSo73U3Y-BjAa_5eEI7_JRMhE" -H "Content-Type: application/json" https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable

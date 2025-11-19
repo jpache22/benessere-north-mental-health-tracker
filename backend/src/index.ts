@@ -166,7 +166,7 @@ export async function check_auth_token(context: Context) {
     }
 }
 
-app.get('/adminUpdateTable', async (context) => {
+app.get('/adminFetchTable', async (context) => {
 
     try {
         //check to make sure caller as access to this data
