@@ -67,10 +67,12 @@ app.post('/login', async (context) => {
 
         const secret = new TextEncoder().encode(context.env.JWT_SECRET);
 
+
+
         const payload = {
-            userId: result.rows[0].id,
-            username: result.rows[0].username,
-            role: result.rows[0].role
+            userId: typeof(result.rows[0].id),
+            username: typeof(result.rows[0].username),
+            role: typeof(result.rows[0].role)
         };
 
         const jwtToken = await new jose.SignJWT(payload)
@@ -165,6 +167,46 @@ export async function check_auth_token(context: Context) {
         return null;
     }
 }
+
+///TEST FUNCTION
+async function testCheckAuthToken() {
+    // Create a JWT for testing
+    const secret = new TextEncoder().encode("supersecret");
+
+    const payload1 = {
+        userId: "123",
+        username: "user1",
+        role: "admin"
+    };
+
+    const jwt = await new jose.SignJWT(payload1)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuer("BenessereNorth")
+        .setExpirationTime('2h')
+        .sign(secret);
+
+    // Mock context
+    const context = {
+        req: {
+            header: (name: string) => {
+                if (name.toLowerCase() === 'authorization') {
+                    return `Bearer ${jwt}`;
+                }
+                return null;
+            }
+        },
+        env: {
+            JWT_SECRET: "supersecret"
+        }
+    } as any;
+
+    // Test the function
+    const payload = await check_auth_token(context);
+    console.log("Decoded payload:", payload);
+}
+
+//testCheckAuthToken();
+
 
 app.get('/adminFetchTable', async (context) => {
 
