@@ -48,7 +48,7 @@ app.post('/login', async (context) => {
         const result = await pool.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
             //[username, password]
-            'SELECT password, passwordsalt FROM users WHERE username = $1 LIMIT 1',
+            'SELECT * FROM users WHERE username = $1 LIMIT 1',
             [username]
         );
 
