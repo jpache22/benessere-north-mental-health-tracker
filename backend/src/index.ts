@@ -304,7 +304,7 @@ app.post('/userUpdate', async (context) => {
         const result = await pool.query(
             //update all columns where id = given id from frontend
 
-            'UPDATE users SET ' + dynamicEmailQuery + ' ' + dynamicRoleQuery + ' ' + dynamicPasswordQuery + ' ' + dynamicUsernameQuery + ' WHERE id = $1',
+            'UPDATE users SET ' + dynamicEmailQuery + ', ' + dynamicRoleQuery + ', ' + dynamicPasswordQuery + ', ' + dynamicUsernameQuery + ' WHERE id = $1',
             [id, email, role, hashedPassword, salt, username]
         );
 
