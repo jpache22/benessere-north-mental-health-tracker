@@ -249,6 +249,7 @@ app.get('/adminFetchTable', async (context) => {
 });
 
 app.post('/userUpdate', async (context) => {
+    let foo ="";
     try {
         //check to make sure caller as access to this data
         const authToken = await check_auth_token(context);
@@ -266,6 +267,8 @@ app.post('/userUpdate', async (context) => {
 
         const { id, username, password, email, role } = body;
 
+
+        foo = "updating" + username +password + email +" and " +role + " where + userid = " + id;
         //setup string builder esq for sql query
         let dynamicUsernameQuery  = "";
         let dynamicPasswordQuery  = "";
@@ -310,7 +313,7 @@ app.post('/userUpdate', async (context) => {
 
 
         //return 200 ok
-        return context.json({success:true}, 200);
+        return context.json({success:true, Roger:foo}, 200);
     }catch (err:any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
