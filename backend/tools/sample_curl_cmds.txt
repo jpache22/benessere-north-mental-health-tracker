@@ -14,5 +14,21 @@ curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-sc
 
 curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register -H "Content-Type: application/json" -H "Authorization: bearer eyregfdgd.fg.fdgdfgfd" -d "{\"username\":\"andy\", \"password\":\"helloWorld\"}"
 
-//test adminFetchTable
-curl -v -X GET  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJCZW5lc3NlcmVOb3J0aCIsImV4cCI6MTc2MzUxNjQ5MH0.Y4W0hqP50zMVIq2ER8DSo73U3Y-BjAa_5eEI7_JRMhE" -H "Content-Type: application/json" https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable
+ADMINFETCHTABLE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+curl -v -X GET  -H "Authorization: Bearer <JWT SECURITY TOKEN>" https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable
+
+curl -v -X GET  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyNCIsInVzZXJuYW1lIjoiSmFjazMiLCJyb2xlIjoiYWRtaW4iLCJpc3MiOiJCZW5lc3NlcmVOb3J0aCIsImV4cCI6MTc2MzY3OTI3OH0.CElKEGlCUuxSLVQMSRwG9p0tNwJVNgeETKRxPSijkFI" https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable
+
+LOGIN~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/login -H "Content-Type: application/json" -d "{\"username\":\"<username>\", \"password\":\"<password>\"}"
+
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/login -H "Content-Type: application/json" -d "{\"username\":\"Jack3\", \"password\":\"helloWorld\"}"
+
+USERUPDATE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate -H "Content-Type: application/json" -d "{\"id\":\"<id>\",\"username\":\"<username>\", \"password\":\"<password>\", \"email\":\"<email>\", \"role\":\"role\"}"
+
+curl -v -X POST https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyNCIsInVzZXJuYW1lIjoiSmFjazMiLCJyb2xlIjoidXNlciIsImlzcyI6IkJlbmVzc2VyZU5vcnRoIiwiZXhwIjoxNzYzNjgxMTgzfQ.RIapwkWuGLI_FGC8faA3cIQuRW8achNyPbo1HWng5tc" -d "{\"id\":\"24\",\"username\":\"Jack3\", \"password\":\"helloWorld\", \"email\":\"jack@sample.com\", \"role\":\"user\"}"
+
+
+
+

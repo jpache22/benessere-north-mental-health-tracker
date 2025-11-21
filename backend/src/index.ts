@@ -248,75 +248,102 @@ app.get('/adminFetchTable', async (context) => {
 
 });
 
+//update User table~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+interface UserUpdatePayload {
+    id: number;
+    username: string;
+    password?: string | null;
+    email?: string | null;
+    role?: string | null;
+}
+
+
+function isUserUpdatePayload(body: any): body is UserUpdatePayload {
+    return (
+        typeof body === "object" &&
+        body !== null &&
+        "id" in body &&
+        "username" in body &&
+        typeof body.username === "string"
+    );
+}
+
+async function userUpdateSql(body: unknown) {
+    if (!isUserUpdatePayload(body)) {
+        throw new Error("Invalid request body");
+    } {
+
+
+    }
+    const { id, username, password, email, role } = body;
+
+    let setClauses = [];
+    let values: (string | number | null)[] = [id];   // $1 is always id
+    let paramIndex = 2;  // Next placeholder is $2
+
+    if (email != null) {
+        setClauses.push(`email = $${paramIndex++}`);
+        values.push(email);
+    }
+
+    if (role != null) {
+        setClauses.push(`role = $${paramIndex++}`);
+        values.push(role);
+    }
+
+    let outPasswordSalt = "";
+    let outHashedPassword = "";
+
+    if (password != null) {
+        outPasswordSalt = await bcrypt.genSalt(10);
+        outHashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), outPasswordSalt);
+
+        setClauses.push(`password = $${paramIndex++}`);
+        values.push(outHashedPassword);
+
+        setClauses.push(`passwordsalt = $${paramIndex++}`);
+        values.push(outPasswordSalt);
+    }
+
+    if (setClauses.length === 0) return null;
+
+    const sql = `UPDATE users SET ${setClauses.join(", ")} WHERE id = $1`;
+
+    return { sql, values };
+}
+
 app.post('/userUpdate', async (context) => {
-    let foo ="";
     try {
-        //check to make sure caller as access to this data
+        // Access control
         const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({ success: false }, 401);
+        if (authToken.role !== "admin") return context.json({ success: false }, 403);
 
-        if ( authToken == null) {
-            //if returns null then caller does not have clearance return unauthorized
-            return context.json({success: false}, 401);
+        const body = await context.req.json();
+
+        // Require username in body for hashing
+        if (!body.username || typeof body.username !== "string") {
+            return context.json({ success: false, error: "Username is required" }, 400);
         }
 
-        if(authToken.role !== "admin") {
-            return context.json({success: false}, 403);
-        }
+        // Build SQL
+        const updateResult = await userUpdateSql(body);
+        if (!updateResult)
+            return context.json({ success: true }, 200); // nothing to update
 
-        const body = await context.req.json(); // Parse JSON body
+        const { sql, values } = updateResult;
 
-        const { id, username, password, email, role } = body;
+        // DB Connection
+        const pool = getPool(context.env.HYPERDRIVE.connectionString);
 
+        // Run update once
+        await pool.query(sql, values);
 
-        foo = "updating" + username +password + email +" and " +role + " where + userid = " + id;
-        //setup string builder esq for sql query
-        let dynamicUsernameQuery  = "";
-        let dynamicPasswordQuery  = "";
-        let dynamicEmailQuery  = "";
-        let dynamicRoleQuery  = "";
+        return context.json({ success: true }, 200);
 
-
-        //if email is not null -> given,  then do not update.
-        if(email != null){
-            dynamicEmailQuery = "email = $2";
-        }
-
-        if(username != null) {
-            dynamicUsernameQuery = "username = $6";
-        }
-
-        if(role != null) {
-            dynamicRoleQuery = "role = $3";
-        }
-
-
-        let salt = ""
-        let hashedPassword = "";
-        if(password != null){
-            dynamicPasswordQuery  = "password = $4, passwordsalt = $5";
-
-            salt = await bcrypt.genSalt(10);
-            //hash password
-            hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), salt);
-        }
-
-        const connectionString = context.env.HYPERDRIVE.connectionString;
-        const pool = getPool(connectionString);
-
-        //get saved hashed password from db
-        const result = await pool.query(
-            //update all columns where id = given id from frontend
-
-            'UPDATE users SET ' + dynamicEmailQuery + ', ' + dynamicRoleQuery + ', ' + dynamicPasswordQuery + ', ' + dynamicUsernameQuery + ' WHERE id = $1',
-            [id, email, role, hashedPassword, salt, username]
-        );
-
-
-        //return 200 ok
-        return context.json({success:true, Roger:foo}, 200);
-    }catch (err:any) {
+    } catch (err) {
         console.error(err);
-        return context.json({ success: false, error: err.message }, 500);
+        return context.json({ success: false, error: err }, 500);
     }
 });
 
