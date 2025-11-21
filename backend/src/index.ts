@@ -271,10 +271,8 @@ function isUserUpdatePayload(body: any): body is UserUpdatePayload {
 async function userUpdateSql(body: unknown) {
     if (!isUserUpdatePayload(body)) {
         throw new Error("Invalid request body");
-    } {
-
-
     }
+
     const { id, username, password, email, role } = body;
 
     let setClauses = [];
@@ -337,7 +335,9 @@ app.post('/userUpdate', async (context) => {
         const pool = getPool(context.env.HYPERDRIVE.connectionString);
 
         // Run update once
-        await pool.query(sql, values);
+        const queryResult = await pool.query(sql, values);
+
+        if(queryResult.rowCount === 0) return context.json({success:false}, 404);
 
         return context.json({ success: true }, 200);
 
