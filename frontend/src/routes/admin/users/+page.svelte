@@ -79,7 +79,7 @@
         },
         body: JSON.stringify({
           id: userId,
-          username: user.name,
+          username: user.name.toLowerCase(),
           role: newRole
         })
       });
@@ -122,7 +122,7 @@
         },
         body: JSON.stringify({
           id: user.id,
-          username: user.name,
+          username: user.name.toLowerCase(),   // REQUIRED for hashing
           password: tempPass
         })
       });
@@ -267,15 +267,10 @@
     color: #c62828;
   }
 
-  .table-wrap {
-    overflow-x: auto;
-  }
-
-  th,
-  td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border);
-    text-align: left;
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--muted);
   }
 
   .right {
