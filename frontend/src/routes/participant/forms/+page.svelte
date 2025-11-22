@@ -83,6 +83,13 @@
 
     try {
       // Prepare data in the format expected by backend
+      const currentUserId = localStorage.getItem('userId');     
+      if (!currentUserId) {
+        errorMessage = 'User not logged in. Please log in again.';
+        isSubmitting = false;
+        setTimeout(() => goto('/login'), 2000);
+        return;
+      }
       const formData = {
         user_id: parseInt(userId), 
         q1: parseInt(answers[1]),
