@@ -91,7 +91,7 @@
         return;
       }
       const formData = {
-        user_id: parseInt(userId), 
+        user_id: parseInt(currentUserId),
         q1: parseInt(answers[1]),
         q2: parseInt(answers[2]),
         q3: parseInt(answers[3]),
