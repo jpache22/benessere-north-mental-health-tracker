@@ -46,14 +46,9 @@
         localStorage.setItem('userName', data.username || username);
         localStorage.setItem('userEmail', data.email || '');
 
-        // Optional: persist token if "remember me" checked
-        if (remember) {
-          document.cookie = `authToken=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}`;
-        }
+        console.log('Login successful, role:', data.role);
 
-        console.log('✅ Login successful, role:', data.role);
-
-        // Redirect based on role
+        // Redirect to user page based on role
         const roleRoutes = {
           'admin': '/admin',
           'coordinator': '/coordinator',
@@ -62,8 +57,8 @@
           'patient': '/participant'
         };
 
-        const redirectPath = roleRoutes[data.role] || '/participant';
-        console.log('🚀 Redirecting to:', redirectPath);
+        const redirectPath = roleRoutes[data.role] ?? '/landing';
+        console.log(' Redirecting to:', redirectPath);
         goto(redirectPath);
       } else {
         serverErr = 'Login succeeded, but incomplete user data was returned.';
