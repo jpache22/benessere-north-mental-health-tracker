@@ -16,6 +16,14 @@
   const UPDATE_URL =
     "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate";
 
+  // Modal state for password reset
+  let showResetModal = false;
+  let resetUser = null;
+  let newPassword = '';
+  let confirmNewPassword = '';
+  let modalErr = '';
+  let modalLoading = false;
+
   // Load users from backend
   onMount(async () => {
     const token = localStorage.getItem('authToken');
@@ -45,7 +53,6 @@
           status: "Active"
         }));
       }
-
     } catch (err) {
       errorMsg = "Connection error.";
     }
@@ -97,16 +104,55 @@
     }
   }
 
-  // Reset password to a default temp password
-  async function resetPassword(userId) {
-    successMsg = "";
-    errorMsg = "";
+  // Open reset modal
+  function openResetModal(user) {
+    resetUser = user;
+    newPassword = '';
+    confirmNewPassword = '';
+    modalErr = '';
+    showResetModal = true;
+  }
 
-    const newTempPassword = "TempPass123";
+  // Close reset modal
+  function closeResetModal() {
+    showResetModal = false;
+    resetUser = null;
+    newPassword = '';
+    confirmNewPassword = '';
+    modalErr = '';
+    modalLoading = false;
+  }
+
+  // Submit new password to backend
+  async function submitReset() {
+    modalErr = '';
+    successMsg = '';
+    errorMsg = '';
+
+    if (!resetUser) return;
+
+    if (!newPassword.trim() || !confirmNewPassword.trim()) {
+      modalErr = "Please fill in both fields.";
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      modalErr = "Password must be at least 6 characters.";
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      modalErr = "Passwords do not match.";
+      return;
+    }
+
     const token = localStorage.getItem("authToken");
-    const user = users.find(u => u.id === userId);
+    if (!token) {
+      modalErr = "No admin token found.";
+      return;
+    }
 
-    if (!token || !user) return;
+    modalLoading = true;
 
     try {
       const res = await fetch(UPDATE_URL, {
@@ -116,22 +162,25 @@
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          id: userId,
-          username: user.name,
-          password: newTempPassword
+          id: resetUser.id,
+          username: resetUser.name,
+          password: newPassword
         })
       });
 
       const data = await res.json();
 
       if (data.success) {
-        successMsg = `Password reset for ${user.name}`;
+        successMsg = `Password updated for ${resetUser.name}`;
+        closeResetModal();
       } else {
-        errorMsg = "Unable to reset password.";
+        modalErr = "Unable to reset password.";
       }
     } catch (err) {
-      errorMsg = "Connection error.";
+      modalErr = "Connection error.";
     }
+
+    modalLoading = false;
   }
 </script>
 
@@ -143,7 +192,12 @@
     </div>
 
     <div class="filters">
-      <input class="input" type="search" placeholder="Search user..." bind:value={search} />
+      <input
+        class="input"
+        type="search"
+        placeholder="Search user..."
+        bind:value={search}
+      />
 
       <select class="input" bind:value={roleFilter}>
         <option value="all">All roles</option>
@@ -207,7 +261,10 @@
                 <td>{user.status}</td>
 
                 <td class="right">
-                  <button class="btn small outline" on:click={() => resetPassword(user.id)}>
+                  <button
+                    class="btn small outline"
+                    on:click={() => openResetModal(user)}
+                  >
                     Reset Password
                   </button>
                 </td>
@@ -219,6 +276,48 @@
     {/if}
   </div>
 </section>
+
+{#if showResetModal}
+  <div class="modal-backdrop" on:click={closeResetModal}>
+    <div class="modal" on:click|stopPropagation>
+      <h2>Reset Password</h2>
+      <p class="muted">Set a new password for {resetUser?.name}</p>
+
+      {#if modalErr}
+        <div class="modal-error">{modalErr}</div>
+      {/if}
+
+      <label class="field">
+        <span>New password</span>
+        <input
+          class="input"
+          type="password"
+          bind:value={newPassword}
+          placeholder="Enter new password"
+        />
+      </label>
+
+      <label class="field">
+        <span>Confirm new password</span>
+        <input
+          class="input"
+          type="password"
+          bind:value={confirmNewPassword}
+          placeholder="Confirm new password"
+        />
+      </label>
+
+      <div class="modal-actions">
+        <button class="btn outline small" on:click={closeResetModal}>
+          Cancel
+        </button>
+        <button class="btn small" disabled={modalLoading} on:click={submitReset}>
+          {modalLoading ? "Saving..." : "Save Password"}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .content-head {
@@ -295,5 +394,51 @@
   .btn.small {
     padding: 8px 10px;
     font-size: 0.9rem;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: grid;
+    place-items: center;
+    z-index: 999;
+  }
+
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px;
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid var(--border);
+    display: grid;
+    gap: 12px;
+  }
+
+  .modal-error {
+    background: #ffe8e8;
+    border: 1px solid #ef9a9a;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: #c62828;
+    font-size: 0.9rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .field span {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
   }
 </style>
