@@ -33,7 +33,7 @@
 
   // TODO: Get actual userId from authentication/session
   // For now using hardcoded value - replace with actual user authentication
-  const userId = null;
+  let userId = null;
   const API_BASE = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
 
   // Calculate total score when answers change
