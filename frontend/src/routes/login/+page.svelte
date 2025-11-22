@@ -38,20 +38,35 @@
         return;
       }
 
-      // Success case: store JWT and userId
-      if (data.token) {
+      // Success case: store JWT, userId, and user info directly from login response
+      if (data.token && data.userId && data.role) {
         localStorage.setItem('authToken', data.token);
         localStorage.setItem('userId', data.userId);
+        localStorage.setItem('userRole', data.role);
+        localStorage.setItem('userName', data.username || username);
+        localStorage.setItem('userEmail', data.email || '');
 
         // Optional: persist token if "remember me" checked
         if (remember) {
           document.cookie = `authToken=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}`;
         }
 
-        console.log('✅ Login successful, redirecting to dashboard...');
-        goto('/landing'); 
+        console.log('✅ Login successful, role:', data.role);
+
+        // Redirect based on role
+        const roleRoutes = {
+          'admin': '/admin',
+          'coordinator': '/coordinator',
+          'therapist': '/therapist',
+          'intake': '/intake',
+          'patient': '/participant'
+        };
+
+        const redirectPath = roleRoutes[data.role] || '/participant';
+        console.log('🚀 Redirecting to:', redirectPath);
+        goto(redirectPath);
       } else {
-        serverErr = 'Login succeeded, but no token was returned.';
+        serverErr = 'Login succeeded, but incomplete user data was returned.';
       }
     } catch (err) {
       console.error('Network error:', err);
@@ -98,7 +113,7 @@
     </form>
 
     <p class="muted" style="margin:14px 0 0;text-align:center">
-      Don’t have an account? <a class="btn outline small" href="/register">Sign Up</a>
+      Don't have an account? <a class="btn outline small" href="/register">Sign Up</a>
     </p>
   </section>
 </main>

@@ -33,7 +33,8 @@
 
   // TODO: Get actual userId from authentication/session
   // For now using hardcoded value - replace with actual user authentication
-  const userId = 1;
+  let userId = null;
+  const API_BASE = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
 
   // Calculate total score when answers change
   $: {
@@ -71,10 +72,26 @@
     errorMessage = '';
     successMessage = '';
 
+    // Check if userId exists
+    if (!userId) {
+      errorMessage = 'User not logged in. Please log in again.';
+      isSubmitting = false;
+      setTimeout(() => goto('/login'), 2000);
+      return;
+    }
+
+
     try {
       // Prepare data in the format expected by backend
+      const currentUserId = localStorage.getItem('userId');     
+      if (!currentUserId) {
+        errorMessage = 'User not logged in. Please log in again.';
+        isSubmitting = false;
+        setTimeout(() => goto('/login'), 2000);
+        return;
+      }
       const formData = {
-        user_id: userId,
+        user_id: parseInt(currentUserId),
         q1: parseInt(answers[1]),
         q2: parseInt(answers[2]),
         q3: parseInt(answers[3]),
@@ -88,11 +105,7 @@
 
       console.log('Submitting PHQ-9 form:', formData);
 
-      // Get API URL from environment variable or use localhost for development
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8787';
-      
-      // Make the API call to submit the form
-      const response = await fetch(`${apiUrl}/phq9`, {
+      const response = await fetch(`${API_BASE}/phq9`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,6 +174,17 @@
 
   // Load draft on mount
   onMount(() => {
+    // Get userId from localStorage
+    const storedUserId = localStorage.getItem('userId');
+    if (!storedUserId) {
+      errorMessage = 'Please log in to access this form.';
+      setTimeout(() => goto('/login'), 2000);
+      return;
+    }
+    userId = storedUserId;
+    console.log('Loaded userId from localStorage:', userId);
+
+    // Load draft if exists
     const savedDraft = localStorage.getItem('phq9_draft');
     if (savedDraft) {
       try {
