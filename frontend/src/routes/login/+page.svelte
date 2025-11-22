@@ -1,5 +1,4 @@
 <script>
-<script>
   import { goto } from '$app/navigation';
 
   // Cloudflare backend endpoint
@@ -64,6 +63,7 @@
         };
 
         const redirectPath = roleRoutes[data.role] || '/participant';
+        console.log('🚀 Redirecting to:', redirectPath);
         goto(redirectPath);
       } else {
         serverErr = 'Login succeeded, but incomplete user data was returned.';
@@ -113,7 +113,7 @@
     </form>
 
     <p class="muted" style="margin:14px 0 0;text-align:center">
-      Don’t have an account? <a class="btn outline small" href="/register">Sign Up</a>
+      Don't have an account? <a class="btn outline small" href="/register">Sign Up</a>
     </p>
   </section>
 </main>
