@@ -82,7 +82,7 @@ app.post('/login', async (context) => {
             .sign(secret);
 
         //return a token if they match, with a 200 code
-        return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id }, 200);
+        return context.json({ success: true, token: jwtToken,  userId: result.rows[0].id, role: result.rows[0].role, username: result.rows[0].username, email: result.rows[0].email }, 200);
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
