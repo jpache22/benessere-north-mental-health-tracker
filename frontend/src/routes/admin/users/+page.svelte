@@ -8,11 +8,15 @@
 
   let loading = true;
   let errorMsg = '';
+  let successMsg = '';
 
-  const API_URL =
+  const FETCH_URL =
     "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable";
 
-  // Load users when page starts
+  const UPDATE_URL =
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate";
+
+  // Load users from backend
   onMount(async () => {
     const token = localStorage.getItem('authToken');
 
@@ -23,11 +27,9 @@
     }
 
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch(FETCH_URL, {
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       const data = await res.json();
@@ -51,7 +53,7 @@
     loading = false;
   });
 
-  // Update visible list when search or filters change
+  // Recalculate filtering
   $: filtered = users.filter((u) => {
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
     const matchesSearch =
@@ -59,13 +61,77 @@
     return matchesRole && matchesSearch;
   });
 
-  // Placeholder until backend updates are ready
-  function assignRole(userId, newRole) {
-    console.log("Assign role", userId, newRole);
+  // Send updated role to backend
+  async function assignRole(userId, newRole) {
+    successMsg = "";
+    errorMsg = "";
+
+    const token = localStorage.getItem("authToken");
+    const user = users.find(u => u.id === userId);
+
+    if (!token || !user) return;
+
+    try {
+      const res = await fetch(UPDATE_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: userId,
+          username: user.name,
+          role: newRole
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        successMsg = `Updated role for ${user.name}`;
+      } else {
+        errorMsg = "Unable to update role.";
+      }
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
   }
 
-  function resetPassword(userId) {
-    console.log("Reset password for", userId);
+  // Reset password to a default temp password
+  async function resetPassword(userId) {
+    successMsg = "";
+    errorMsg = "";
+
+    const newTempPassword = "TempPass123";
+    const token = localStorage.getItem("authToken");
+    const user = users.find(u => u.id === userId);
+
+    if (!token || !user) return;
+
+    try {
+      const res = await fetch(UPDATE_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: userId,
+          username: user.name,
+          password: newTempPassword
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        successMsg = `Password reset for ${user.name}`;
+      } else {
+        errorMsg = "Unable to reset password.";
+      }
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
   }
 </script>
 
@@ -73,16 +139,12 @@
   <header class="content-head">
     <div>
       <h1>Users & Roles</h1>
-      <p class="muted">Manage roles and permissions for system users.</p>
+      <p class="muted">Manage user accounts and permissions.</p>
     </div>
 
     <div class="filters">
-      <input
-        class="input"
-        type="search"
-        placeholder="Search user..."
-        bind:value={search}
-      />
+      <input class="input" type="search" placeholder="Search user..." bind:value={search} />
+
       <select class="input" bind:value={roleFilter}>
         <option value="all">All roles</option>
         <option value="admin">Admin</option>
@@ -94,21 +156,20 @@
     </div>
   </header>
 
+  {#if successMsg}
+    <div class="success-box">{successMsg}</div>
+  {/if}
+
+  {#if errorMsg}
+    <div class="error-box">{errorMsg}</div>
+  {/if}
+
   <div class="card">
     {#if loading}
-      <div class="empty">
-        <p>Loading users...</p>
-      </div>
-
-    {:else if errorMsg}
-      <div class="empty">
-        <p>{errorMsg}</p>
-      </div>
+      <div class="empty"><p>Loading users...</p></div>
 
     {:else if users.length === 0}
-      <div class="empty">
-        <p>No users found.</p>
-      </div>
+      <div class="empty"><p>No users found.</p></div>
 
     {:else}
       <div class="table-wrap">
@@ -122,6 +183,7 @@
               <th class="right">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {#each filtered as user}
               <tr>
@@ -145,10 +207,7 @@
                 <td>{user.status}</td>
 
                 <td class="right">
-                  <button
-                    class="btn small outline"
-                    on:click={() => resetPassword(user.id)}
-                  >
+                  <button class="btn small outline" on:click={() => resetPassword(user.id)}>
                     Reset Password
                   </button>
                 </td>
@@ -162,7 +221,7 @@
 </section>
 
 <style>
-  .page-users .content-head {
+  .content-head {
     display: flex;
     justify-content: space-between;
     align-items: end;
@@ -175,6 +234,24 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+  }
+
+  .success-box {
+    background: #e8ffe8;
+    border: 1px solid #a5d6a7;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    color: #2e7d32;
+  }
+
+  .error-box {
+    background: #ffe8e8;
+    border: 1px solid #ef9a9a;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+    color: #c62828;
   }
 
   .table-wrap {
