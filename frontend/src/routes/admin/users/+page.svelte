@@ -16,15 +16,7 @@
   const UPDATE_URL =
     "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate";
 
-  // Modal state for password reset
-  let showResetModal = false;
-  let resetUser = null;
-  let newPassword = '';
-  let confirmNewPassword = '';
-  let modalErr = '';
-  let modalLoading = false;
-
-  // Load users from backend
+  // Load users
   onMount(async () => {
     const token = localStorage.getItem('authToken');
 
@@ -37,7 +29,7 @@
     try {
       const res = await fetch(FETCH_URL, {
         method: "GET",
-        headers: { "Authorization": `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const data = await res.json();
@@ -60,7 +52,7 @@
     loading = false;
   });
 
-  // Recalculate filtering
+  // Filter results
   $: filtered = users.filter((u) => {
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
     const matchesSearch =
@@ -68,7 +60,7 @@
     return matchesRole && matchesSearch;
   });
 
-  // Send updated role to backend
+  // Update role
   async function assignRole(userId, newRole) {
     successMsg = "";
     errorMsg = "";
@@ -82,7 +74,7 @@
       const res = await fetch(UPDATE_URL, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -104,83 +96,47 @@
     }
   }
 
-  // Open reset modal
-  function openResetModal(user) {
-    resetUser = user;
-    newPassword = '';
-    confirmNewPassword = '';
-    modalErr = '';
-    showResetModal = true;
+  // Generate random temporary password
+  function generateTempPassword() {
+    const num = Math.floor(10000 + Math.random() * 90000);
+    return `Temp-${num}`;
   }
 
-  // Close reset modal
-  function closeResetModal() {
-    showResetModal = false;
-    resetUser = null;
-    newPassword = '';
-    confirmNewPassword = '';
-    modalErr = '';
-    modalLoading = false;
-  }
-
-  // Submit new password to backend
-  async function submitReset() {
-    modalErr = '';
-    successMsg = '';
-    errorMsg = '';
-
-    if (!resetUser) return;
-
-    if (!newPassword.trim() || !confirmNewPassword.trim()) {
-      modalErr = "Please fill in both fields.";
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      modalErr = "Password must be at least 6 characters.";
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      modalErr = "Passwords do not match.";
-      return;
-    }
-
+  // Reset password instantly with temp one
+  async function autoTempReset(user) {
     const token = localStorage.getItem("authToken");
+
     if (!token) {
-      modalErr = "No admin token found.";
+      errorMsg = "No admin token found.";
       return;
     }
 
-    modalLoading = true;
+    const tempPass = generateTempPassword();
 
     try {
       const res = await fetch(UPDATE_URL, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          id: resetUser.id,
-          username: resetUser.name,
-          password: newPassword
+          id: user.id,
+          username: user.name,
+          password: tempPass
         })
       });
 
       const data = await res.json();
 
       if (data.success) {
-        successMsg = `Password updated for ${resetUser.name}`;
-        closeResetModal();
+        successMsg = `Temporary password for ${user.name}: ${tempPass}`;
       } else {
-        modalErr = "Unable to reset password.";
+        errorMsg = "Unable to reset password.";
       }
     } catch (err) {
-      modalErr = "Connection error.";
+      errorMsg = "Connection error.";
     }
-
-    modalLoading = false;
   }
 </script>
 
@@ -263,7 +219,7 @@
                 <td class="right">
                   <button
                     class="btn small outline"
-                    on:click={() => openResetModal(user)}
+                    on:click={() => autoTempReset(user)}
                   >
                     Reset Password
                   </button>
@@ -276,48 +232,6 @@
     {/if}
   </div>
 </section>
-
-{#if showResetModal}
-  <div class="modal-backdrop" on:click={closeResetModal}>
-    <div class="modal" on:click|stopPropagation>
-      <h2>Reset Password</h2>
-      <p class="muted">Set a new password for {resetUser?.name}</p>
-
-      {#if modalErr}
-        <div class="modal-error">{modalErr}</div>
-      {/if}
-
-      <label class="field">
-        <span>New password</span>
-        <input
-          class="input"
-          type="password"
-          bind:value={newPassword}
-          placeholder="Enter new password"
-        />
-      </label>
-
-      <label class="field">
-        <span>Confirm new password</span>
-        <input
-          class="input"
-          type="password"
-          bind:value={confirmNewPassword}
-          placeholder="Confirm new password"
-        />
-      </label>
-
-      <div class="modal-actions">
-        <button class="btn outline small" on:click={closeResetModal}>
-          Cancel
-        </button>
-        <button class="btn small" disabled={modalLoading} on:click={submitReset}>
-          {modalLoading ? "Saving..." : "Save Password"}
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
 
 <style>
   .content-head {
@@ -357,11 +271,6 @@
     overflow-x: auto;
   }
 
-  .table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
   th,
   td {
     padding: 12px 14px;
@@ -373,72 +282,8 @@
     text-align: right;
   }
 
-  .card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-
-  .empty {
-    padding: 40px;
-    text-align: center;
-    color: var(--muted);
-  }
-
-  select.input.small {
-    height: 34px;
-    font-size: 0.9rem;
-  }
-
   .btn.small {
     padding: 8px 10px;
     font-size: 0.9rem;
-  }
-
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    display: grid;
-    place-items: center;
-    z-index: 999;
-  }
-
-  .modal {
-    background: #fff;
-    border-radius: 14px;
-    padding: 18px;
-    width: 100%;
-    max-width: 420px;
-    border: 1px solid var(--border);
-    display: grid;
-    gap: 12px;
-  }
-
-  .modal-error {
-    background: #ffe8e8;
-    border: 1px solid #ef9a9a;
-    padding: 8px 10px;
-    border-radius: 8px;
-    color: #c62828;
-    font-size: 0.9rem;
-  }
-
-  .field {
-    display: grid;
-    gap: 6px;
-  }
-
-  .field span {
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 4px;
   }
 </style>
