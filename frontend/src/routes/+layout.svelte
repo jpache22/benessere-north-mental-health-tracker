@@ -55,7 +55,7 @@
   </nav>
 </header>
 
-<Added wrapper with padding-bottom to prevent footer overlap -->
+<!--Added wrapper with padding-bottom to prevent footer overlap -->
 <div style="min-height: 100vh; padding-bottom: 80px;">
   <slot />
 </div>
