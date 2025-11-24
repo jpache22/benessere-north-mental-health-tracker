@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "testbackend", // change back to backend after testing
+  "name": "benessere-north-mental-health-tracker-backend",
   "main": "src/index.ts",
   "compatibility_date": "2025-10-06",
   "compatibility_flags": [
@@ -18,7 +18,15 @@
      "JMASER_DEV_PAGES_URL": "https://dev-jack.benessere-north-mental-health-tracker.pages.dev",
      "ANDY_DEV_PAGES_URL": "https://dev-andy.benessere-north-mental-health-tracker.pages.dev",
      "SHAWN_DEV_PAGES_URL": "https://dev-shawn.benessere-north-mental-health-tracker.pages.dev"
-   }
+   },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    }
+  }
 
   // "kv_namespaces": [
   //   {
