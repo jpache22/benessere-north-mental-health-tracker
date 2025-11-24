@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "benessere-north-mental-health-tracker-backend",
+  "name": "benessere-north-mental-health-tracker-backend", 
   "main": "src/index.ts",
   "compatibility_date": "2025-10-06",
   "compatibility_flags": [
