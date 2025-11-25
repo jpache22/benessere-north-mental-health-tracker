@@ -1,14 +1,14 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
 
   let users = [];
   let filtered = [];
-  let search = '';
-  let roleFilter = 'all';
+  let search = "";
+  let roleFilter = "all";
 
   let loading = true;
-  let errorMsg = '';
-  let successMsg = '';
+  let errorMsg = "";
+  let successMsg = "";
 
   const FETCH_URL =
     "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable";
@@ -16,9 +16,8 @@
   const UPDATE_URL =
     "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate";
 
-  // Load users
   onMount(async () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
 
     if (!token) {
       errorMsg = "No admin token found. Please log in.";
@@ -37,7 +36,7 @@
       if (!data.success) {
         errorMsg = "Failed to load user list.";
       } else {
-        users = data.payload.data.map(u => ({
+        users = data.payload.data.map((u) => ({
           id: u.id,
           name: u.username,
           email: u.email ?? "—",
@@ -52,21 +51,19 @@
     loading = false;
   });
 
-  // Filter results
   $: filtered = users.filter((u) => {
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+    const matchesRole = roleFilter === "all" || u.role === roleFilter;
     const matchesSearch =
       !search || u.name.toLowerCase().includes(search.toLowerCase());
     return matchesRole && matchesSearch;
   });
 
-  // Update role
   async function assignRole(userId, newRole) {
     successMsg = "";
     errorMsg = "";
 
     const token = localStorage.getItem("authToken");
-    const user = users.find(u => u.id === userId);
+    const user = users.find((u) => u.id === userId);
 
     if (!token || !user) return;
 
@@ -96,13 +93,11 @@
     }
   }
 
-  // Generate random temporary password
   function generateTempPassword() {
     const num = Math.floor(10000 + Math.random() * 90000);
     return `Temp-${num}`;
   }
 
-  // Reset password instantly with temp one
   async function autoTempReset(user) {
     const token = localStorage.getItem("authToken");
 
@@ -122,7 +117,7 @@
         },
         body: JSON.stringify({
           id: user.id,
-          username: user.name.toLowerCase(),   // REQUIRED for hashing
+          username: user.name.toLowerCase(),
           password: tempPass
         })
       });
@@ -140,8 +135,8 @@
   }
 </script>
 
-<section class="content page-users">
-  <header class="content-head">
+<section class="page-users">
+  <header class="page-head">
     <div>
       <h1>Users & Roles</h1>
       <p class="muted">Manage user accounts and permissions.</p>
@@ -167,19 +162,19 @@
   </header>
 
   {#if successMsg}
-    <div class="success-box">{successMsg}</div>
+    <div class="alert success">{successMsg}</div>
   {/if}
 
   {#if errorMsg}
-    <div class="error-box">{errorMsg}</div>
+    <div class="alert error">{errorMsg}</div>
   {/if}
 
-  <div class="card">
+  <div class="card table-card">
     {#if loading}
-      <div class="empty"><p>Loading users...</p></div>
+      <div class="empty">Loading users…</div>
 
     {:else if users.length === 0}
-      <div class="empty"><p>No users found.</p></div>
+      <div class="empty">No users found.</div>
 
     {:else}
       <div class="table-wrap">
@@ -234,10 +229,10 @@
 </section>
 
 <style>
-  .content-head {
+  .page-head {
     display: flex;
     justify-content: space-between;
-    align-items: end;
+    align-items: flex-end;
     flex-wrap: wrap;
     gap: 16px;
     margin-bottom: 20px;
@@ -249,36 +244,56 @@
     flex-wrap: wrap;
   }
 
-  .success-box {
-    background: #e8ffe8;
-    border: 1px solid #a5d6a7;
+  .alert {
     padding: 10px 14px;
     border-radius: 10px;
     margin-bottom: 14px;
+  }
+
+  .alert.success {
+    background: #e8ffe8;
+    border: 1px solid #a5d6a7;
     color: #2e7d32;
   }
 
-  .error-box {
+  .alert.error {
     background: #ffe8e8;
     border: 1px solid #ef9a9a;
-    padding: 10px 14px;
-    border-radius: 10px;
-    margin-bottom: 14px;
     color: #c62828;
   }
 
-  .empty {
-    padding: 40px;
-    text-align: center;
-    color: var(--muted);
+  .table-card {
+    padding: 0;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
   }
 
   .right {
     text-align: right;
   }
 
-  .btn.small {
-    padding: 8px 10px;
+  .empty {
+    padding: 32px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  select.input.small {
+    padding: 6px;
     font-size: 0.9rem;
   }
 </style>
