@@ -19,6 +19,7 @@
       return;
     }
 
+    // --- USERS COUNT ---
     try {
       const res = await fetch(`${API_BASE}/adminFetchTable`, {
         method: "GET",
@@ -33,9 +34,27 @@
       console.error(err);
     }
 
-    // Placeholder values until backend provides real counts:
+    // --- SUBMITTED FORMS COUNT ---
+    try {
+      const res2 = await fetch(`${API_BASE}/admin/forms`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data2 = await res2.json();
+
+      if (data2.success) {
+        formsCount = data2.phq9.length;
+      } else {
+        formsCount = "0";
+      }
+    } catch (err) {
+      console.error(err);
+      formsCount = "0";
+    }
+
+    // Placeholders for now
     accessCount = "—";
-    formsCount = "—";
     attendanceCount = "—";
 
     loading = false;
@@ -74,7 +93,6 @@
     <a class="btn small outline" href="/admin/attendance">View Attendance</a>
   </div>
 </div>
-
 
 <!-- Users Section -->
 <section class="card section">
