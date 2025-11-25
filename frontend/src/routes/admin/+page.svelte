@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount } from "svelte";
 
   const API_BASE =
     "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
@@ -13,53 +13,49 @@
 
   onMount(async () => {
     const token = localStorage.getItem("authToken");
-
     if (!token) {
       loading = false;
       return;
     }
 
-    // --- USERS COUNT ---
+    // --- USERS ---
     try {
       const res = await fetch(`${API_BASE}/adminFetchTable`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }
       });
-
       const data = await res.json();
       if (data.success) {
         userCount = data.payload.count;
       }
     } catch (err) {
-      console.error(err);
+      console.error("User count error:", err);
     }
 
-    // --- SUBMITTED FORMS COUNT ---
+    // --- FORMS (PHQ-9 count) ---
     try {
-      const res2 = await fetch(`${API_BASE}/admin/forms`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${API_BASE}/phq9`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      const data = await res.json();
 
-      const data2 = await res2.json();
-
-      if (data2.success) {
-        formsCount = data2.phq9.length;
+      if (data.success && Array.isArray(data.phq9)) {
+        formsCount = data.phq9.length;
       } else {
-        formsCount = "0";
+        formsCount = 0;
       }
     } catch (err) {
-      console.error(err);
-      formsCount = "0";
+      console.error("Forms count error:", err);
+      formsCount = 0;
     }
 
-    // Placeholders for now
+    // placeholders for future features
     accessCount = "—";
     attendanceCount = "—";
 
     loading = false;
   });
 </script>
+
 
 <h1 style="margin:0 0 22px">Admin Dashboard</h1>
 
@@ -93,6 +89,7 @@
     <a class="btn small outline" href="/admin/attendance">View Attendance</a>
   </div>
 </div>
+
 
 <!-- Users Section -->
 <section class="card section">
