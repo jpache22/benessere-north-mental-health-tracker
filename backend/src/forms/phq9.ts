@@ -22,6 +22,28 @@ phq9.get('/', async(context) => {
     }
 });
 
+// Admin: fetch minimal PHQ-9 data for all users 
+phq9.get('/admin/all', async (context) => {
+  const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+
+  try {
+    const result = await connectionPool.query(`
+      SELECT 
+        form_submission_id,
+        user_id,
+        total_score,
+        depression_severity
+      FROM public."PHQ9"
+      ORDER BY form_submission_id DESC;
+    `);
+
+    return context.json({ success: true, data: result.rows });
+  } catch (err: any) {
+    console.error(err);
+    return context.json({ success: false, error: err.message }, 500);
+  }
+});
+
 // Get the rows from PHQ9 for a specific user ( a user may have multiple rows if they have multiple submissions for this form ) will be ordered by completion date
 phq9.get('/:userid', async(context) => {
     const id = context.req.param('userid'); // id 
