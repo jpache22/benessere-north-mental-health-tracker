@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import * as jose from 'jose';
 import { getPool } from './db/pool';
 import phq9 from './forms/phq9';
+import epds from './forms/epds';
 import groups from './db/groups';
 import projects from './db/projects';
 
@@ -347,16 +348,13 @@ app.post('/userUpdate', async (context) => {
     }
 });
 
-
-
-
-
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
 
 // form routes
 app.route('/phq9', phq9);
+app.route('/epds', epds);
 
 
 export default app
