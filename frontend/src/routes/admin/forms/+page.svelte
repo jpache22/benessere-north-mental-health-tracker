@@ -1,20 +1,70 @@
 <script>
-  // DB-ready — this will later fetch from /api/admin/forms
-  let forms = [];
-  let search = '';
-  let statusFilter = 'all';
+  import { onMount } from "svelte";
 
+  const API_BASE =
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
+
+  let forms = [];
+  let search = "";
+  let statusFilter = "all";
+
+  let loading = true;
+  let errorMsg = "";
+
+  // Fetch PHQ-9 forms for admin
+  onMount(async () => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      errorMsg = "Not authenticated.";
+      loading = false;
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/forms`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        errorMsg = "Unable to load submitted forms.";
+      } else {
+        // Convert DB → table UI format
+        forms = data.phq9.map((f) => ({
+          id: f.form_submission_id,
+          participant: f.user_id,                    // Could later map to real username
+          formName: "PHQ-9",
+          project: "—",                              // undefined for now
+          submittedAt: new Date(f.completion_date).toLocaleString(),
+          status: "pending",                         // default until you add per-form status
+          total: f.total_score,
+          severity: f.depression_severity
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      errorMsg = "Network error.";
+    }
+
+    loading = false;
+  });
+
+  // Filtering logic
   $: filtered = forms.filter((f) => {
-    const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || f.status === statusFilter;
     const matchesSearch =
       !search ||
-      f.participant?.toLowerCase().includes(search.toLowerCase()) ||
-      f.formName?.toLowerCase().includes(search.toLowerCase());
+      f.participant?.toString().toLowerCase().includes(search.toLowerCase()) ||
+      f.formName.toLowerCase().includes(search.toLowerCase());
+
     return matchesStatus && matchesSearch;
   });
 
   function reviewForm(id) {
-    console.log('Review form:', id);
+    console.log("Review form:", id);
+    // Later: goto(`/admin/forms/${id}`)
   }
 </script>
 
@@ -42,10 +92,15 @@
   </header>
 
   <div class="card">
-    {#if forms.length === 0}
-      <div class="empty">
-        <p>No form data available. Connect to the database to load records.</p>
-      </div>
+    {#if loading}
+      <div class="empty"><p>Loading…</p></div>
+
+    {:else if errorMsg}
+      <div class="empty"><p>{errorMsg}</p></div>
+
+    {:else if filtered.length === 0}
+      <div class="empty"><p>No form data found.</p></div>
+
     {:else}
       <div class="table-wrap">
         <table class="table">
