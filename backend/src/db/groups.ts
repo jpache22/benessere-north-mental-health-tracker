@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getPool } from '../db/pool';
 import { Bindings } from '../types';
+import { GroupRequest } from '../types';
 
 const groups = new Hono<{Bindings: Bindings}>();
 
@@ -82,26 +83,16 @@ groups.post('/', async(context) => {
     const data = await context.req.json(); // get the data from the post request
     const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
 
-    const {
-        project_id,
-        label,
-        session_dates
-    } = data;
-
-    // validate data
-    if (project_id === undefined || label === undefined || session_dates === undefined) {
-        return context.json({ success: false, error: "Missing required fields"}, 400);
-    }
-
     try {
+        const validData = GroupRequest.parse(data);
         const result = await connectionPool.query(
             `INSERT INTO public."groups" (project_id, label, session_dates)
             VALUES ($1, $2, $3)
             RETURNING group_id;`,
             [
-                project_id,
-                label,
-                session_dates
+                validData.project_id,
+                validData.label,
+                validData.session_dates
             ]
         );
         return context.json(({ success: true, group_id: result.rows[0].group_id }));
