@@ -1,31 +1,145 @@
 <script>
-  // Eventually will fetch from backend: /api/admin/users
-  let users = []; // leave empty until DB integration
-  let search = '';
-  let roleFilter = 'all';
+  import { onMount } from "svelte";
 
-  // Derived filtered users
+  let users = [];
+  let filtered = [];
+  let search = "";
+  let roleFilter = "all";
+
+  let loading = true;
+  let errorMsg = "";
+  let successMsg = "";
+
+  const FETCH_URL =
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable";
+
+  const UPDATE_URL =
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate";
+
+  onMount(async () => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      errorMsg = "No admin token found. Please log in.";
+      loading = false;
+      return;
+    }
+
+    try {
+      const res = await fetch(FETCH_URL, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        errorMsg = "Failed to load user list.";
+      } else {
+        users = data.payload.data.map((u) => ({
+          id: u.id,
+          name: u.username,
+          email: u.email ?? "—",
+          role: u.role ?? "none",
+          status: "Active"
+        }));
+      }
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
+
+    loading = false;
+  });
+
   $: filtered = users.filter((u) => {
-    const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-    const matchesSearch = !search || u.name.toLowerCase().includes(search.toLowerCase());
+    const matchesRole = roleFilter === "all" || u.role === roleFilter;
+    const matchesSearch =
+      !search || u.name.toLowerCase().includes(search.toLowerCase());
     return matchesRole && matchesSearch;
   });
 
-  // Placeholders for future actions
-  function assignRole(userId, newRole) {
-    console.log('Assign role', userId, newRole);
+  async function assignRole(userId, newRole) {
+    successMsg = "";
+    errorMsg = "";
+
+    const token = localStorage.getItem("authToken");
+    const user = users.find((u) => u.id === userId);
+
+    if (!token || !user) return;
+
+    try {
+      const res = await fetch(UPDATE_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: userId,
+          username: user.name.toLowerCase(),
+          role: newRole
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        successMsg = `Updated role for ${user.name}`;
+      } else {
+        errorMsg = "Unable to update role.";
+      }
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
   }
 
-  function resetPassword(userId) {
-    console.log('Reset password for user', userId);
+  function generateTempPassword() {
+    const num = Math.floor(10000 + Math.random() * 90000);
+    return `Temp-${num}`;
+  }
+
+  async function autoTempReset(user) {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      errorMsg = "No admin token found.";
+      return;
+    }
+
+    const tempPass = generateTempPassword();
+
+    try {
+      const res = await fetch(UPDATE_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: user.id,
+          username: user.name.toLowerCase(),
+          password: tempPass
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        successMsg = `Temporary password for ${user.name}: ${tempPass}`;
+      } else {
+        errorMsg = "Unable to reset password.";
+      }
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
   }
 </script>
 
-<section class="content page-users">
-  <header class="content-head">
+<section class="page-users">
+  <header class="page-head">
     <div>
       <h1>Users & Roles</h1>
-      <p class="muted">Manage roles and permissions for system users.</p>
+      <p class="muted">Manage user accounts and permissions.</p>
     </div>
 
     <div class="filters">
@@ -35,21 +149,33 @@
         placeholder="Search user..."
         bind:value={search}
       />
+
       <select class="input" bind:value={roleFilter}>
         <option value="all">All roles</option>
         <option value="admin">Admin</option>
         <option value="coordinator">Coordinator</option>
         <option value="therapist">Therapist</option>
         <option value="intake">Intake</option>
+        <option value="none">None</option>
       </select>
     </div>
   </header>
 
-  <div class="card">
-    {#if users.length === 0}
-      <div class="empty">
-        <p>No users loaded. Connect to the database to view records.</p>
-      </div>
+  {#if successMsg}
+    <div class="alert success">{successMsg}</div>
+  {/if}
+
+  {#if errorMsg}
+    <div class="alert error">{errorMsg}</div>
+  {/if}
+
+  <div class="card table-card">
+    {#if loading}
+      <div class="empty">Loading users…</div>
+
+    {:else if users.length === 0}
+      <div class="empty">No users found.</div>
+
     {:else}
       <div class="table-wrap">
         <table class="table">
@@ -62,11 +188,13 @@
               <th class="right">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {#each filtered as user}
               <tr>
                 <td>{user.name}</td>
                 <td>{user.email}</td>
+
                 <td>
                   <select
                     class="input small"
@@ -77,13 +205,16 @@
                     <option value="coordinator">Coordinator</option>
                     <option value="therapist">Therapist</option>
                     <option value="intake">Intake</option>
+                    <option value="none">None</option>
                   </select>
                 </td>
-                <td>{user.status ?? 'Active'}</td>
+
+                <td>{user.status}</td>
+
                 <td class="right">
                   <button
                     class="btn small outline"
-                    on:click={() => resetPassword(user.id)}
+                    on:click={() => autoTempReset(user)}
                   >
                     Reset Password
                   </button>
@@ -98,10 +229,10 @@
 </section>
 
 <style>
-  .page-users .content-head {
+  .page-head {
     display: flex;
     justify-content: space-between;
-    align-items: end;
+    align-items: flex-end;
     flex-wrap: wrap;
     gap: 16px;
     margin-bottom: 20px;
@@ -113,6 +244,28 @@
     flex-wrap: wrap;
   }
 
+  .alert {
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+
+  .alert.success {
+    background: #e8ffe8;
+    border: 1px solid #a5d6a7;
+    color: #2e7d32;
+  }
+
+  .alert.error {
+    background: #ffe8e8;
+    border: 1px solid #ef9a9a;
+    color: #c62828;
+  }
+
+  .table-card {
+    padding: 0;
+  }
+
   .table-wrap {
     overflow-x: auto;
   }
@@ -122,8 +275,9 @@
     border-collapse: collapse;
   }
 
-  th, td {
-    padding: 12px 14px;
+  th,
+  td {
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     text-align: left;
   }
@@ -132,26 +286,14 @@
     text-align: right;
   }
 
-  .card {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-
   .empty {
-    padding: 40px;
+    padding: 32px;
     text-align: center;
     color: var(--muted);
   }
 
   select.input.small {
-    height: 34px;
-    font-size: 0.9rem;
-  }
-
-  .btn.small {
-    padding: 8px 10px;
+    padding: 6px;
     font-size: 0.9rem;
   }
 </style>

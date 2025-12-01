@@ -1,10 +1,76 @@
-<script>
-  // Later fetched from /api/admin/access
-  let requests = []; // empty until backend is ready
+<script lang="ts">
+  import { onMount } from 'svelte';
+
+  let requests = [];
   let statusFilter = 'pending';
   let search = '';
+  let loading = true;
 
-  // Derived filtered requests
+  // Load JWT from localStorage
+  function getAuth() {
+    return localStorage.getItem("token") || "";
+  }
+
+  // Fetch access requests from backend
+  async function loadRequests() {
+    loading = true;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/admin/accessRequests`,
+        {
+          headers: {
+            Authorization: `Bearer ${getAuth()}`
+          }
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.success) {
+        requests = data.requests;
+      } else {
+        console.error("Failed loading requests");
+      }
+    } catch (e) {
+      console.error("Error:", e);
+    }
+
+    loading = false;
+  }
+
+  async function approve(id: number) {
+    await doAction(id, 'approve');
+  }
+
+  async function deny(id: number) {
+    await doAction(id, 'deny');
+  }
+
+  async function doAction(id: number, action: 'approve' | 'deny') {
+    try {
+      await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/admin/access/${action}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getAuth()}`
+          },
+          body: JSON.stringify({ requestId: id })
+        }
+      );
+
+      await loadRequests(); // Refresh after action
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Load on page mount
+  onMount(loadRequests);
+
+  // Derived filter
   $: filtered = requests.filter((r) => {
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     const matchesSearch =
@@ -13,24 +79,13 @@
       r.project?.toLowerCase().includes(search.toLowerCase());
     return matchesStatus && matchesSearch;
   });
-
-  // Placeholder action handlers
-  function approve(id) {
-    console.log('Approved access request:', id);
-  }
-
-  function deny(id) {
-    console.log('Denied access request:', id);
-  }
 </script>
 
 <section class="content page-access">
   <header class="content-head">
     <div>
       <h1>Access Control</h1>
-      <p class="muted">
-        Grant or deny group and project access for users.
-      </p>
+      <p class="muted">Grant or deny group and project access for users.</p>
     </div>
 
     <div class="filters">
@@ -40,6 +95,7 @@
         placeholder="Search by user or project..."
         bind:value={search}
       />
+
       <select class="input" bind:value={statusFilter}>
         <option value="pending">Pending</option>
         <option value="approved">Approved</option>
@@ -50,9 +106,13 @@
   </header>
 
   <div class="card">
-    {#if requests.length === 0}
+    {#if loading}
       <div class="empty">
-        <p>No pending access requests. Connect database to load data.</p>
+        <p>Loading access requests...</p>
+      </div>
+    {:else if requests.length === 0}
+      <div class="empty">
+        <p>No access requests found.</p>
       </div>
     {:else}
       <div class="table-wrap">
@@ -67,6 +127,7 @@
               <th class="right">Actions</th>
             </tr>
           </thead>
+
           <tbody>
             {#each filtered as req}
               <tr>
@@ -75,12 +136,17 @@
                 <td>{req.project}</td>
                 <td>{req.roleRequested}</td>
                 <td style="text-transform:capitalize">{req.status}</td>
+
                 <td class="right actions">
                   {#if req.status === 'pending'}
                     <button class="btn small" on:click={() => approve(req.id)}>
                       Approve
                     </button>
-                    <button class="btn small outline red" on:click={() => deny(req.id)}>
+
+                    <button
+                      class="btn small outline red"
+                      on:click={() => deny(req.id)}
+                    >
                       Deny
                     </button>
                   {:else}
