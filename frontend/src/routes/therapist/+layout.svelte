@@ -12,6 +12,7 @@
       <a class:active={is('/therapist/sessions')} href="/therapist/sessions">Sessions</a>
       <a class:active={is('/therapist/forms')} href="/therapist/forms">Assigned Forms</a>
       <a class:active={is('/therapist/patients')} href="/therapist/patients">Patients</a>
+      <a class:active={is('/therapist/groupOverview')} href="/therapist/groupOverview">Group Overview</a>
     </nav>
   </aside>
 
