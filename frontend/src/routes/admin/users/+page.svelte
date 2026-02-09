@@ -10,11 +10,13 @@
   let errorMsg = "";
   let successMsg = "";
 
-  const FETCH_URL =
-    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/adminFetchTable";
+  const API_BASE =
+    import.meta.env.VITE_BACKEND_URL ??
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
 
-  const UPDATE_URL =
-    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/userUpdate";
+  const FETCH_URL = `${API_BASE}/adminFetchTable`;
+  const UPDATE_URL = `${API_BASE}/userUpdate`;
+  const RESET_URL = `${API_BASE}/admin/reset-password`;
 
   onMount(async () => {
     const token = localStorage.getItem("authToken");
@@ -106,10 +108,52 @@
       return;
     }
 
-    const tempPass = generateTempPassword();
+    try {
+      const res = await fetch(RESET_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: user.id,
+          username: user.name.toLowerCase()
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const tempPass = data.tempPassword ?? generateTempPassword();
+        successMsg = `Temporary password for ${user.name}: ${tempPass}`;
+      } else {
+        errorMsg = "Unable to reset password.";
+      }
+    } catch (err) {
+      errorMsg = "Connection error.";
+    }
+  }
+
+  async function manualReset(user) {
+    successMsg = "";
+    errorMsg = "";
+
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      errorMsg = "No admin token found.";
+      return;
+    }
+
+    const newPass = prompt(`Set a new password for ${user.name}:`);
+    if (newPass == null) return;
+
+    if (!newPass.trim() || newPass.length < 6) {
+      errorMsg = "Password must be at least 6 characters.";
+      return;
+    }
 
     try {
-      const res = await fetch(UPDATE_URL, {
+      const res = await fetch(RESET_URL, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -118,14 +162,14 @@
         body: JSON.stringify({
           id: user.id,
           username: user.name.toLowerCase(),
-          password: tempPass
+          password: newPass
         })
       });
 
       const data = await res.json();
 
       if (data.success) {
-        successMsg = `Temporary password for ${user.name}: ${tempPass}`;
+        successMsg = `Password reset for ${user.name}.`;
       } else {
         errorMsg = "Unable to reset password.";
       }
@@ -214,9 +258,15 @@
                 <td class="right">
                   <button
                     class="btn small outline"
-                    on:click={() => autoTempReset(user)}
+                    on:click={() => manualReset(user)}
                   >
                     Reset Password
+                  </button>
+                  <button
+                    class="btn small"
+                    on:click={() => autoTempReset(user)}
+                  >
+                    Temp Password
                   </button>
                 </td>
               </tr>

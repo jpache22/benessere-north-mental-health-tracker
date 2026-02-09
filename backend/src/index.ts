@@ -355,7 +355,6 @@ app.post('/userUpdate', async (context) => {
     }
 });
 
-
 app.post('/users/self/password', async (context) => {
 
     let foo = '';
@@ -398,10 +397,59 @@ app.post('/users/self/password', async (context) => {
     }
 
 });
+function generateTempPassword() {
+    const digits = new Uint8Array(6);
+    crypto.getRandomValues(digits);
+    const num = Array.from(digits, (b) => (b % 10)).join("");
+    return `Temp-${num}`;
+}
 
+app.post('/admin/reset-password', async (context) => {
+    try {
+        const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({ success: false }, 401);
+        if (authToken.role !== "admin") return context.json({ success: false }, 403);
 
+        const body = await context.req.json();
 
+        if (!body || typeof body !== "object") {
+            return context.json({ success: false, error: "Invalid request body" }, 400);
+        }
 
+        const { id, username, password } = body as {
+            id: number | string;
+            username: string;
+            password?: string;
+        };
+
+        if (!id || !username) {
+            return context.json({ success: false, error: "id and username are required" }, 400);
+        }
+
+        const nextPassword = password ?? generateTempPassword();
+
+        const updateResult = await userUpdateSql({
+            id,
+            username,
+            password: nextPassword
+        });
+
+        if (!updateResult) return context.json({ success: false }, 400);
+
+        const pool = getPool(context.env.HYPERDRIVE.connectionString);
+        const queryResult = await pool.query(updateResult.sql, updateResult.values);
+
+        if (queryResult.rowCount === 0) return context.json({ success: false }, 404);
+
+        const response: { success: boolean; tempPassword?: string } = { success: true };
+        if (!password) response.tempPassword = nextPassword;
+
+        return context.json(response, 200);
+    } catch (err) {
+        console.error(err);
+        return context.json({ success: false, error: err }, 500);
+    }
+});
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
