@@ -1,10 +1,9 @@
-import { Hono } from 'hono'
-import { Context } from 'hono';
-import { cors } from 'hono/cors';
-import { Bindings } from './types';
+import {Context, Hono} from 'hono'
+import {cors} from 'hono/cors';
+import {Bindings} from './types';
 import * as bcrypt from 'bcryptjs';
 import * as jose from 'jose';
-import { getPool } from './db/pool';
+import {getPool} from './db/pool';
 import phq9 from './forms/phq9';
 import groups from './db/groups';
 import projects from './db/projects';
@@ -347,6 +346,48 @@ app.post('/userUpdate', async (context) => {
     }
 });
 
+
+app.post('/users/:userid/password', async (context) => {
+    //{ "password": "fo456",  "old_pass": "sfdsdgsd"}
+
+    try {
+        // Access control
+        const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== "user") return context.json({ success: false }, 403);
+
+        const body = await context.req.json();
+        body.userid = context.req.param('userid');
+
+        // Require username in body for hashing
+        if (!body.username || typeof body.username !== "string") {
+            return context.json({ success: false, error: "Username is required" }, 400);
+        }
+
+        // Build SQL
+        const updateResult = await userUpdateSql(body);
+        if (!updateResult)
+            return context.json({ success: true }, 200); // nothing to update
+
+        const { sql, values } = updateResult;
+
+        // DB Connection
+        const pool = getPool(context.env.HYPERDRIVE.connectionString);
+
+        // Run update once
+        const queryResult = await pool.query(sql, values);
+
+        if(queryResult.rowCount === 0) return context.json({success:false}, 404);
+
+        return context.json({ success: true }, 200);
+
+    } catch (err) {
+        console.error(err);
+        return context.json({ success: false, error: err }, 500);
+    }
+
+
+});
 
 
 
