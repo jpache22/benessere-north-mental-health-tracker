@@ -356,13 +356,7 @@ app.post('/userUpdate', async (context) => {
 
 
 app.post('/users/self/password', async (context) => {
-    //{ "password": "fo456",  "old_pass": "sfdsdgsd"}
 
-   /* return do_post_self_password(context);
-});
-
-async function do_post_self_password(context: any) {
-*/
     let foo = '';
 
     try {
@@ -381,20 +375,20 @@ async function do_post_self_password(context: any) {
         if (!body.username || typeof body.username !== "string") {
             return context.json({success: false, error: "Login Token is damaged"}, 500);
         }
-
+        foo = foo + "line 378";
         // Build SQL
         const updateResult = await userUpdateSql(body);
         if (!updateResult)
             return context.json({success: true}, 200); // nothing to update
 
         const {sql, values} = updateResult;
-
+        foo = foo + "Line 385";
         // DB Connection
         const pool = getPool(context.env.HYPERDRIVE.connectionString);
-
+        foo = foo + "Line 388";
         // Run update once
         const queryResult = await pool.query(sql, values);
-
+        foo = foo + "Line 391";
         if (queryResult.rowCount === 0) return context.json({success: false}, 404);
 
         return context.json({success: true}, 200);
