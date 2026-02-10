@@ -347,21 +347,23 @@ app.post('/userUpdate', async (context) => {
 });
 
 
-app.post('/users/:userid/password', async (context) => {
+app.post('/users/self/password', async (context) => {
     //{ "password": "fo456",  "old_pass": "sfdsdgsd"}
 
     try {
         // Access control
         const authToken = await check_auth_token(context);
         if (!authToken) return context.json({success: false}, 401);
-        if (authToken.role !== "user") return context.json({ success: false }, 403);
+
+
 
         const body = await context.req.json();
-        body.userid = context.req.param('userid');
+        //body.userid = context.req.param('userid');
+        body.username = authToken.username;
 
         // Require username in body for hashing
         if (!body.username || typeof body.username !== "string") {
-            return context.json({ success: false, error: "Username is required" }, 400);
+            return context.json({ success: false, error: "Login Token is damaged" }, 500);
         }
 
         // Build SQL
