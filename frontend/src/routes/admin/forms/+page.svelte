@@ -1,20 +1,69 @@
 <script>
-  // DB-ready — this will later fetch from /api/admin/forms
-  let forms = [];
-  let search = '';
-  let statusFilter = 'all';
+  import { onMount } from "svelte";
 
+  const API_BASE =
+    "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
+
+  let forms = [];
+  let search = "";
+  let statusFilter = "all";
+
+  let loading = true;
+  let errorMsg = "";
+
+  // Fetch minimal PHQ-9 form list
+  onMount(async () => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      errorMsg = "Not authenticated.";
+      loading = false;
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/phq9/admin/all`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        errorMsg = "Unable to load submitted forms.";
+      } else {
+        // Convert backend → table rows
+        forms = data.data.map((f) => ({
+          id: f.form_submission_id,
+          participant: f.user_id,
+          formName: "PHQ-9",
+          score: f.total_score,
+          severity: f.depression_severity,
+          status: "reviewed" // default for now
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      errorMsg = "Network error.";
+    }
+
+    loading = false;
+  });
+
+  // Filtering
   $: filtered = forms.filter((f) => {
-    const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || f.status === statusFilter;
+
     const matchesSearch =
       !search ||
-      f.participant?.toLowerCase().includes(search.toLowerCase()) ||
-      f.formName?.toLowerCase().includes(search.toLowerCase());
+      f.participant?.toString().includes(search) ||
+      f.formName.toLowerCase().includes(search.toLowerCase());
+
     return matchesStatus && matchesSearch;
   });
 
   function reviewForm(id) {
-    console.log('Review form:', id);
+    console.log("Review:", id);
+    // Later: goto(`/admin/forms/${id}`)
   }
 </script>
 
@@ -22,51 +71,56 @@
   <header class="content-head">
     <div>
       <h1>Submitted Forms</h1>
-      <p class="muted">View and manage all submitted participant forms.</p>
+      <p class="muted">View all PHQ-9 submissions.</p>
     </div>
 
     <div class="filters">
       <input
         class="input"
         type="search"
-        placeholder="Search by participant or form name…"
+        placeholder="Search by user ID or form…"
         bind:value={search}
       />
+
       <select class="input" bind:value={statusFilter}>
         <option value="all">All statuses</option>
-        <option value="pending">Pending</option>
         <option value="reviewed">Reviewed</option>
-        <option value="flagged">Flagged</option>
       </select>
     </div>
   </header>
 
   <div class="card">
-    {#if forms.length === 0}
-      <div class="empty">
-        <p>No form data available. Connect to the database to load records.</p>
-      </div>
+    {#if loading}
+      <div class="empty"><p>Loading…</p></div>
+
+    {:else if errorMsg}
+      <div class="empty"><p>{errorMsg}</p></div>
+
+    {:else if filtered.length === 0}
+      <div class="empty"><p>No data available.</p></div>
+
     {:else}
       <div class="table-wrap">
         <table class="table">
           <thead>
             <tr>
-              <th>Participant</th>
-              <th>Form Name</th>
-              <th>Project</th>
-              <th>Date Submitted</th>
+              <th>User ID</th>
+              <th>Form</th>
+              <th>Score</th>
+              <th>Severity</th>
               <th>Status</th>
-              <th class="right">Actions</th>
+              <th class="right">Action</th>
             </tr>
           </thead>
+
           <tbody>
             {#each filtered as f}
               <tr>
                 <td>{f.participant}</td>
                 <td>{f.formName}</td>
-                <td>{f.project}</td>
-                <td>{f.submittedAt}</td>
-                <td style="text-transform:capitalize">{f.status}</td>
+                <td>{f.score}</td>
+                <td>{f.severity}</td>
+                <td>{f.status}</td>
                 <td class="right">
                   <button class="btn small outline" on:click={() => reviewForm(f.id)}>
                     Review
@@ -112,10 +166,10 @@
     border-collapse: collapse;
   }
 
-  th, td {
+  th,
+  td {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border);
-    text-align: left;
   }
 
   .right {

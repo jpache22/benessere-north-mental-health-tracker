@@ -22,6 +22,28 @@ phq9.get('/', async(context) => {
     }
 });
 
+// Admin: fetch minimal PHQ-9 data for all users 
+phq9.get('/admin/all', async (context) => {
+  const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+
+  try {
+    const result = await connectionPool.query(`
+      SELECT 
+        form_submission_id,
+        user_id,
+        total_score,
+        depression_severity
+      FROM public."PHQ9"
+      ORDER BY form_submission_id DESC;
+    `);
+
+    return context.json({ success: true, data: result.rows });
+  } catch (err: any) {
+    console.error(err);
+    return context.json({ success: false, error: err.message }, 500);
+  }
+});
+
 // Get the rows from PHQ9 for a specific user ( a user may have multiple rows if they have multiple submissions for this form ) will be ordered by completion date
 phq9.get('/:userid', async(context) => {
     const id = context.req.param('userid'); // id 
@@ -102,7 +124,7 @@ phq9.post('/', async(context) => {
         const result = await connectionPool.query(
             `INSERT INTO public."PHQ9" (user_id, completion_date, q1, q2, q3, q4, q5, q6, q7, q8, q9, total_score, depression_severity)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            RETURNING form_submission_id;`, // may need to remove this not sure if it works
+            RETURNING form_submission_id;`,
             [
                 validData.user_id,
                 completion_date,

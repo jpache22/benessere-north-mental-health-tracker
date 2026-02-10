@@ -1,10 +1,8 @@
 <script>
   import { goto } from '$app/navigation';
 
-  // Backend API endpoint
   const API_URL = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev/register";
 
-  // Form fields
   let username = '';
   let email = '';
   let password = '';
@@ -17,11 +15,18 @@
     message = '';
     loading = true;
 
-    // Validation
+    // Basic validation
     if (!username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       message = 'Please fill in all fields.';
       loading = false;
       return;
+    }
+
+    // Password is over 6 characters
+    if (password.length < 6) {
+    message = 'Password must be at least 6 characters long.';
+    loading = false;
+    return;
     }
 
     if (password !== confirmPassword) {
@@ -31,6 +36,7 @@
     }
 
     try {
+      // POST request to backend (backend enforces role='participant')
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +73,7 @@
     <div class="brand-center">
       <div class="logo">BN</div>
       <h1>Create an Account</h1>
-      <p class="subtitle">Join Benessere North today</p>
+      <p class="subtitle">All new accounts start as Participants</p>
     </div>
 
     <form on:submit={registerUser} novalidate>
@@ -91,7 +97,7 @@
         <input type="password" bind:value={confirmPassword} placeholder="••••••••" minlength="6" required />
       </label>
 
-      <button type="submit" class="primary btn" disabled={loading}>
+      <button type="submit" class="btn primary" disabled={loading}>
         {loading ? 'Creating Account...' : 'Sign Up'}
       </button>
     </form>
@@ -165,7 +171,7 @@
     font-size: 0.9rem;
   }
 
-  .field input, select {
+  .field input {
     height: 42px;
     padding: 0 12px;
     border-radius: 10px;
@@ -174,7 +180,7 @@
     font-size: 1rem;
   }
 
-  .field input:focus, select:focus {
+  .field input:focus {
     border-color: var(--brand);
     box-shadow: 0 0 0 4px var(--ring);
     outline: none;

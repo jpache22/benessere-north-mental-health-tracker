@@ -10,7 +10,6 @@ export type Bindings = {
     SHAWN_DEV_PAGES_URL: string
 };
 
-// might add token for the request, need to discuss
 export const PHQ9Request = z.object({
     user_id: z.number(),
     q1: z.number(),
@@ -22,6 +21,20 @@ export const PHQ9Request = z.object({
     q7: z.number(),
     q8: z.number(),
     q9: z.number()
+});
+
+export const EPDSRequest = z.object({
+    user_id: z.number(),
+    q1: z.number(),
+    q2: z.number(),
+    q3: z.number(),
+    q4: z.number(),
+    q5: z.number(),
+    q6: z.number(),
+    q7: z.number(),
+    q8: z.number(),
+    q9: z.number(),
+    q10: z.number()
 });
 
 export const ProjectRequest = z.object({

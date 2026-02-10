@@ -2,90 +2,96 @@ import { Hono } from 'hono';
 import { getPool } from '../db/pool';
 import { Bindings } from '../types';
 import { ProjectRequest } from '../types';
+import { check_auth_token } from '../index';
 
 const projects = new Hono<{Bindings: Bindings}>();
 
-// add routes to get information from the projects tables
-
-// retrieves all the rows for the projects table
+// GET all projects
 projects.get('/', async(context) => {
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+    const auth = await check_auth_token(context);
+    if (!auth || auth.role !== "admin") {
+        return context.json({ success: false, error: "Unauthorized" }, 403);
+    }
+
+    const pool = getPool(context.env.HYPERDRIVE.connectionString);
     try {
-        const result = await connectionPool.query(
+        const result = await pool.query(
             `SELECT project_id, expiry_date, label, num_of_therapy_sessions, session_forms, screening_forms, pre_group_forms, post_group_forms FROM public."projects"`
         );
         return context.json({ success:true, projects: result.rows });
     } catch (err: any) {
         console.error(err);
-        return context.json({ success: false, error: err.mmessage });
+        return context.json({ success: false, error: err.message });
     }
 });
 
-// retrieve project by label
+// GET by label
 projects.get('/label/:label', async(context) => {
+    const auth = await check_auth_token(context);
+    if (!auth || auth.role !== "admin") {
+        return context.json({ success: false, error: "Unauthorized" }, 403);
+    }
+
     const label = context.req.param('label');
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+
     try {
-        const result = await connectionPool.query(
+        const result = await pool.query(
             `SELECT label, project_id, expiry_date, num_of_therapy_sessions, session_forms, screening_forms, pre_group_forms, post_group_forms
             FROM public."projects" WHERE label = $1;`,
             [label]
         );
 
-        // check if there was a project that matched the label
-        if (result.rows.length === 0) {
-            return context.json({ success: false, error: `Project data not found for label = ${label}` }, 404);
-        } else {
-            return context.json({ success: true, projects: result.rows});
-        }
+        if (result.rows.length === 0)
+            return context.json({ success:false, error:"Not found" }, 404);
 
+        return context.json({ success: true, projects: result.rows });
     } catch (err: any) {
         console.error(err);
-        return context.json({ success: false, error: err.mmessage }, 500);
+        return context.json({ success: false, error: err.message }, 500);
     }
 });
 
-// retrieve project by project id
+// GET by project_id
 projects.get('/project_id/:project_id', async(context) => {
+    const auth = await check_auth_token(context);
+    if (!auth || auth.role !== "admin") {
+        return context.json({ success: false, error: "Unauthorized" }, 403);
+    }
+
     const project_id = context.req.param('project_id');
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+
     try {
-        const result = await connectionPool.query(
+        const result = await pool.query(
             `SELECT project_id, label, expiry_date, num_of_therapy_sessions, session_forms, screening_forms, pre_group_forms, post_group_forms
             FROM public."projects" WHERE project_id = $1;`,
             [project_id]
         );
-        // check if there was a project that matched the project_id
-        if (result.rows.length === 0) {
-            return context.json({ success: false, error: `Project data not found for project_id = ${project_id}` }, 404);
-        } else {
-            return context.json({ success: true, projects: result.rows[0]}); // should only be 1 group
-        }
+
+        if (result.rows.length === 0)
+            return context.json({ success:false, error:"Not found" }, 404);
+
+        return context.json({ success: true, projects: result.rows[0]});
     } catch(err: any) {
         console.error(err);
-        return context.json({ success: false, error: err.mmessage }, 500);
+        return context.json({ success: false, error: err.message }, 500);
     }
-})
+});
 
-// post for project
-/* takes a json as data in the following format
-{
-    expiry_date: ,
-    label: ,
-    num_of_therapy_sessions: ,
-    session_forms: [],
-    post_group_forms: [],
-    screening_forms: [], // optional value
-    pre_group_forms: [] // optional value
-}
-*/
+// POST new project
 projects.post('/', async(context) => {
-    const data = await context.req.json(); // get the data from the post request
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+    const auth = await check_auth_token(context);
+    if (!auth || auth.role !== "admin") {
+        return context.json({ success: false, error: "Unauthorized" }, 403);
+    }
+
+    const data = await context.req.json();
+    const pool = getPool(context.env.HYPERDRIVE.connectionString);
 
     try {
         const validData = ProjectRequest.parse(data);
-        const result = await connectionPool.query(
+        const result = await pool.query(
             `INSERT INTO public."projects" (
                 expiry_date,
                 label,
@@ -106,8 +112,9 @@ projects.post('/', async(context) => {
                 validData.pre_group_forms ?? null
             ]
         );
-        return context.json(({ success: true, project_id: result.rows[0].project_id }));
-    } catch( err: any) {
+
+        return context.json({ success: true, project_id: result.rows[0].project_id });
+    } catch(err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
     }
