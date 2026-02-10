@@ -357,7 +357,7 @@ app.post('/users/self/password', async (context) => {
 
 
 
-        const body = await context.req.json();
+        let body = await context.req.json();
         //body.userid = context.req.param('userid');
         body.username = authToken.username;
 
