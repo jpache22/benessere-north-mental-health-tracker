@@ -21,13 +21,14 @@
 
 <style>
   .shell{display:block;min-height:calc(100vh - 140px)}
-  .top-nav{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#f0f9ff,#fef3ff);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin:0 0 16px;flex-wrap:wrap}
+  .top-nav{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;background:linear-gradient(180deg,#f0f9ff,#fef3ff);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin:0 0 16px}
   .top-title{margin:2px 6px 2px 2px;font-size:1rem}
-  .top-links{display:flex;flex-wrap:wrap;gap:8px}
-  .side-link{display:block;padding:10px 12px;border-radius:12px;text-decoration:none;color:inherit}
+  .top-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;width:100%}
+  .side-link{display:block;padding:10px 12px;border-radius:12px;text-decoration:none;color:inherit;text-align:center}
   .side-link:hover{background:#fff;border:1px solid var(--border)}
   :global(a[aria-current="page"].side-link){
     background:#fff;border:1px solid var(--border);box-shadow:0 10px 20px rgba(0,0,0,.05)
   }
   .muted{color:var(--muted)}
+  @media (max-width: 640px){.top-nav{grid-template-columns:1fr}.top-title{margin-right:0}}
 </style>

@@ -29,7 +29,8 @@
   }
 
   .top-nav {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr;
     align-items: center;
     gap: 12px;
     margin: 0 auto;
@@ -38,7 +39,6 @@
     background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
     border-radius: 14px;
     color: #fff;
-    flex-wrap: wrap;
   }
 
   .top-title {
@@ -47,9 +47,10 @@
   }
 
   .top-links {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
+    width: 100%;
   }
 
   .top-links a {
@@ -58,6 +59,7 @@
     padding: 8px 12px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.15);
+    text-align: center;
   }
 
   .top-links a:hover {
@@ -76,6 +78,14 @@
   }
 
   @media (max-width: 640px) {
+    .top-nav {
+      grid-template-columns: 1fr;
+    }
+
+    .top-title {
+      margin-right: 0;
+    }
+
     .top-nav,
     .admin-content {
       padding-left: 14px;
