@@ -88,6 +88,13 @@
     <p class="muted">Review participation lists</p>
     <a class="btn small outline" href="/admin/attendance">View Attendance</a>
   </div>
+
+  <div class="card kpi">
+    <h3>Groups & Projects</h3>
+    <div class="kpi-num">+</div>
+    <p class="muted">Create and manage groups/projects</p>
+    <a class="btn small outline" href="/admin/groups-projects">Open</a>
+  </div>
 </div>
 
 
@@ -130,6 +137,14 @@
     <a class="btn small" href="/admin/attendance">View Attendance</a>
   </header>
   <div class="empty">Attendance data not yet available.</div>
+</section>
+
+<section class="card section">
+  <header class="section-head">
+    <h2>Groups & Projects</h2>
+    <a class="btn small" href="/admin/groups-projects">Open</a>
+  </header>
+  <div class="empty">Create groups and projects from one place.</div>
 </section>
 
 <style>

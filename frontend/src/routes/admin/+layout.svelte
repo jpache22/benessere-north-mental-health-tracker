@@ -12,6 +12,7 @@
     <nav class="side-nav">
       <a class="side-link" href="/admin">Dashboard</a>
       <a class="side-link" href="/admin/users">Users & Roles</a>
+      <a class="side-link" href="/admin/groups-projects">Groups & Projects</a>
       <a class="side-link" href="/admin/forms">Forms</a>
       <a class="side-link" href="/admin/attendance">Attendance</a>
       <a class="side-link" href="/admin/access">Access Control</a>
