@@ -1,22 +1,20 @@
 <script>
-  let open = true;
+  import { page } from '$app/stores';
+  const is = (p) => $page.url.pathname === p || $page.url.pathname.startsWith(p + '/');
 </script>
 
 <div class="admin-shell">
-  <aside class="admin-aside" aria-label="Admin navigation">
-    <a class="brand-link" href="/landing">
-      <span class="logo">BN</span>
-      <span class="brand-text">Admin</span>
-    </a>
-
-    <nav class="side-nav">
-      <a class="side-link" href="/admin">Dashboard</a>
-      <a class="side-link" href="/admin/users">Users & Roles</a>
-      <a class="side-link" href="/admin/forms">Forms</a>
-      <a class="side-link" href="/admin/attendance">Attendance</a>
-      <a class="side-link" href="/admin/access">Access Control</a>
-    </nav>
-  </aside>
+  <nav class="top-nav" aria-label="Admin navigation">
+    <span class="top-title">Admin</span>
+    <div class="top-links">
+      <a class:active={is('/admin')} href="/admin">Dashboard</a>
+      <a class:active={is('/admin/users')} href="/admin/users">Users & Roles</a>
+      <a class:active={is('/admin/groups-projects')} href="/admin/groups-projects">Groups & Projects</a>
+      <a class:active={is('/admin/forms')} href="/admin/forms">Forms</a>
+      <a class:active={is('/admin/attendance')} href="/admin/attendance">Attendance</a>
+      <a class:active={is('/admin/access')} href="/admin/access">Access Control</a>
+    </div>
+  </nav>
 
   <main class="container admin-content">
     <slot />
@@ -25,61 +23,51 @@
 
 <style>
   .admin-shell {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    min-height: 100vh;
+    display: block;
+    min-height: calc(100vh - 140px);
     background: #f8f9fb; /* FIX */
   }
 
-  .admin-aside {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    padding: 20px 16px;
-    background: linear-gradient(180deg,#22c55e 0%,#16a34a 100%);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .brand-link {
+  .top-nav {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    margin: 0 auto;
+    max-width: 1120px;
+    padding: 14px 24px;
+    background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+    border-radius: 14px;
     color: #fff;
-    text-decoration: none;
-    margin-bottom: 6px;
+    flex-wrap: wrap;
   }
 
-  .logo {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    background: #fff;
-    color: #16a34a;
-    display: grid;
-    place-items: center;
-    font-weight: 800;
+  .top-title {
+    font-weight: 700;
+    margin-right: 8px;
   }
 
-  .side-nav {
+  .top-links {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 8px;
-    margin-top: 8px;
   }
 
-  .side-link {
-    color:#e6ffef;
-    text-decoration:none;
-    padding:10px 12px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.15)
+  .top-links a {
+    color: #e6ffef;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
-  .side-link:hover {
-    background: rgba(255,255,255,.12);
+  .top-links a:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .top-links a.active {
+    background: #fff;
+    color: #166534;
+    border-color: #fff;
   }
 
   .admin-content {
@@ -87,8 +75,11 @@
     background: #f8f9fb; /* FIX */
   }
 
-  @media (max-width:1024px) {
-    .admin-shell { grid-template-columns: 1fr; }
-    .admin-aside { display: none; }
+  @media (max-width: 640px) {
+    .top-nav,
+    .admin-content {
+      padding-left: 14px;
+      padding-right: 14px;
+    }
   }
 </style>
