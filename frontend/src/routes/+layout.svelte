@@ -40,9 +40,7 @@
       applyTheme(savedTheme === "dark");
       return;
     }
-
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    applyTheme(prefersDark);
+    applyTheme(false);
   });
 
   $: hideSignOut =
