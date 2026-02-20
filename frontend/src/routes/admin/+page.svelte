@@ -86,7 +86,7 @@
     <h3>Attendance</h3>
     <div class="kpi-num">{attendanceCount}</div>
     <p class="muted">Review participation lists</p>
-    <a class="btn small outline" href="/admin/attendance">View Attendance</a>
+    <a class="btn small outline" href="/admin/attendance-overview">View Attendance</a>
   </div>
 </div>
 
@@ -127,9 +127,17 @@
 <section class="card section">
   <header class="section-head">
     <h2>Attendance Overview</h2>
-    <a class="btn small" href="/admin/attendance">View Attendance</a>
+    <a class="btn small" href="/admin/attendance-overview">View Attendance</a>
   </header>
   <div class="empty">Attendance data not yet available.</div>
+</section>
+
+<section class="card section">
+  <header class="section-head">
+    <h2>Group Overview</h2>
+    <a class="btn small" href="/admin/group-overview">View Groups</a>
+  </header>
+  <div class="empty">Group-level progress data not yet available.</div>
 </section>
 
 <style>

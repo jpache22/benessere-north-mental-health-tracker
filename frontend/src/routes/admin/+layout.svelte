@@ -11,7 +11,9 @@
       <a class:active={is('/admin/users')} href="/admin/users">Users & Roles</a>
       <a class:active={is('/admin/groups-projects')} href="/admin/groups-projects">Groups & Projects</a>
       <a class:active={is('/admin/forms')} href="/admin/forms">Forms</a>
-      <a class:active={is('/admin/attendance')} href="/admin/attendance">Attendance</a>
+      <a class:active={is('/admin/attendance-overview')} href="/admin/attendance-overview">Attendance Overview</a>
+      <a class:active={is('/admin/group-overview')} href="/admin/group-overview">Group Overview</a>
+      <a class:active={is('/admin/attendance')} href="/admin/attendance">Attendance Logs</a>
       <a class:active={is('/admin/access')} href="/admin/access">Access Control</a>
     </div>
   </nav>
