@@ -15,6 +15,7 @@ body{
     radial-gradient(1200px 520px at 12% 115%, #d1fae5 0%, transparent 62%),
     radial-gradient(1000px 600px at 110% 110%, #dbeafe 0%, transparent 60%),
     var(--bg);
+  background-attachment: fixed, fixed, fixed;
 
   /* NEW: footer sticks to bottom when content is short */
   display:flex;
