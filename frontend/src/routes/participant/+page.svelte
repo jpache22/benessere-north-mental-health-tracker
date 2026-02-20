@@ -17,33 +17,86 @@
 
   // Forms data
   let phq9History = [];
+  let epdsHistory = [];
   let loading = true;
   let error = '';
   let showCompleted = true; 
 
   // Available forms (static for now)
-
   let formsToComplete = [
     { 
       name: 'PHQ-9', 
       status: 'available', 
-      link: '/participant/forms',
+      link: '/participant/forms/phq9',
+      assigned: 'Available',
+      due: 'Anytime'
+    },
+    { 
+      name: 'EPDS', 
+      status: 'available', 
+      link: '/participant/forms/epds',
       assigned: 'Available',
       due: 'Anytime'
     }
   ];
 
-  // Computed: Map PHQ-9 history to completed forms
-  $: completedForms = phq9History.slice(0, 3).map(form => ({
-    name: 'PHQ-9',
-    date: new Date(form.completion_date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    }),
-    score: `${form.total_score}/27`,
-    severity: form.depression_severity
-  }));
+  // Helper function to get severity level info for PHQ-9
+  function getPhq9SeverityInfo(score) {
+    if (score <= 4) return { level: 'None-minimal', color: '#d1fae5', textColor: '#065f46' };
+    if (score <= 9) return { level: 'Mild', color: '#fef3c7', textColor: '#78350f' };
+    if (score <= 14) return { level: 'Moderate', color: '#fed7aa', textColor: '#9a3412' };
+    if (score <= 19) return { level: 'Moderately Severe', color: '#fecaca', textColor: '#991b1b' };
+    return { level: 'Severe', color: '#fee2e2', textColor: '#7f1d1d' };
+  }
+
+  // Helper function to get severity level info for EPDS
+  function getEpdsSeverityInfo(score) {
+    if (score <= 9) return { level: 'Low Risk', color: '#d1fae5', textColor: '#065f46' };
+    if (score <= 12) return { level: 'Moderate Risk', color: '#fed7aa', textColor: '#9a3412' };
+    return { level: 'High Risk', color: '#fee2e2', textColor: '#7f1d1d' };
+  }
+
+  // Computed: Combine and sort PHQ-9 and EPDS history
+  $: completedForms = (() => {
+    const phq9Forms = phq9History.map(form => {
+      const severity = getPhq9SeverityInfo(form.total_score);
+      return {
+        name: 'PHQ-9',
+        date: new Date(form.completion_date),
+        dateString: new Date(form.completion_date).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }),
+        score: `${form.total_score}/27`,
+        severity: severity.level,
+        severityColor: severity.color,
+        severityTextColor: severity.textColor
+      };
+    });
+
+    const epdsForms = epdsHistory.map(form => {
+      const severity = getEpdsSeverityInfo(form.total_score);
+      return {
+        name: 'EPDS',
+        date: new Date(form.completion_date),
+        dateString: new Date(form.completion_date).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        }),
+        score: `${form.total_score}/30`,
+        severity: severity.level,
+        severityColor: severity.color,
+        severityTextColor: severity.textColor
+      };
+    });
+
+    // Combine both arrays and sort by date (most recent first)
+    return [...phq9Forms, ...epdsForms]
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 5); // Show 5 most recent
+  })();
 
   async function loadUserData() {
     const userId = localStorage.getItem('userId');
@@ -66,11 +119,22 @@
 
       if (phq9Data.success && phq9Data.phq9) {
         phq9History = phq9Data.phq9;
-        console.log(' Loaded PHQ-9 history:', phq9History.length, 'submissions');
+        console.log('Loaded PHQ-9 history:', phq9History.length, 'submissions');
       } else if (phq9Res.status === 404) {
-        // No submissions yet - this is OK
         phq9History = [];
-        console.log(' No submissions found for this user');
+        console.log('No PHQ-9 submissions found for this user');
+      }
+
+      // Fetch EPDS history
+      const epdsRes = await fetch(`${API_BASE}/epds/${userId}`);
+      const epdsData = await epdsRes.json();
+
+      if (epdsData.success && epdsData.epds) {
+        epdsHistory = epdsData.epds;
+        console.log('Loaded EPDS history:', epdsHistory.length, 'submissions');
+      } else if (epdsRes.status === 404) {
+        epdsHistory = [];
+        console.log('No EPDS submissions found for this user');
       }
 
       loading = false;
@@ -98,14 +162,14 @@
     </p>
   </div>
 
-  <!-- ADDED: Error message -->
+  <!-- Error message -->
   {#if error}
     <div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;border-radius:12px;padding:14px 16px;margin-bottom:20px">
       {error}
     </div>
   {/if}
 
-  <!--  ADDED: Loading state -->
+  <!-- Loading state -->
   {#if loading}
     <div style="text-align:center;padding:60px 20px;color:#64748b">
       <p style="margin:0;font-size:1.1rem">Loading your dashboard...</p>
@@ -165,7 +229,7 @@
         </h2>
       </div>
       {#if showCompleted}
-        <!--  ADDED: Empty state when no submissions -->
+        <!-- Empty state when no submissions -->
         {#if completedForms.length === 0}
           <div style="padding:40px 20px;text-align:center;color:#94a3b8">
             <p style="margin:0">No form submissions yet. Complete your first form to get started!</p>
@@ -185,22 +249,10 @@
                 {#each completedForms as form}
                   <tr>
                     <td style="padding:12px 16px;border-bottom:1px solid var(--border)">{form.name}</td>
-                    <td style="padding:12px 16px;border-bottom:1px solid var(--border)">{form.date}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid var(--border)">{form.dateString}</td>
                     <td style="padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600">{form.score}</td>
                     <td style="padding:12px 16px;border-bottom:1px solid var(--border)">
-                      <span style="padding:4px 12px;border-radius:12px;font-size:0.875rem;font-weight:500;background:{
-                        form.severity === 'None-minimal' ? '#d1fae5' :
-                        form.severity === 'Mild' ? '#fef3c7' :
-                        form.severity === 'Moderate' ? '#fed7aa' :
-                        form.severity === 'Moderately Severe' ? '#fecaca' :
-                        '#fee2e2'
-                      };color:{
-                        form.severity === 'None-minimal' ? '#065f46' :
-                        form.severity === 'Mild' ? '#78350f' :
-                        form.severity === 'Moderate' ? '#9a3412' :
-                        form.severity === 'Moderately Severe' ? '#991b1b' :
-                        '#7f1d1d'
-                      }">
+                      <span style="padding:4px 12px;border-radius:12px;font-size:0.875rem;font-weight:500;background:{form.severityColor};color:{form.severityTextColor}">
                         {form.severity}
                       </span>
                     </td>
