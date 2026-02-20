@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getAuthSession } from '$lib/auth';
 
   let requests = [];
   let statusFilter = 'pending';
@@ -8,7 +9,7 @@
 
   // Load JWT from localStorage
   function getAuth() {
-    return localStorage.getItem("token") || "";
+    return getAuthSession().token || "";
   }
 
   // Fetch access requests from backend

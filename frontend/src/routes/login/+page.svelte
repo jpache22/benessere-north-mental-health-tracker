@@ -1,5 +1,6 @@
 <script>
   import { goto } from '$app/navigation';
+  import { getRoleHomePath, saveAuthSession } from '$lib/auth';
 
   // Cloudflare backend endpoint
   const API_BASE = "https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev";
@@ -38,26 +39,18 @@
         return;
       }
 
-      // Success case: store JWT, userId, and user info directly from login response
+      // Success case: store JWT + profile details
       if (data.token && data.userId && data.role) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('userId', data.userId);
-        localStorage.setItem('userRole', data.role);
-        localStorage.setItem('userName', data.username || username);
-        localStorage.setItem('userEmail', data.email || '');
+        saveAuthSession({
+          token: data.token,
+          userId: data.userId,
+          role: data.role,
+          username: data.username || username,
+          email: data.email || ''
+        });
 
         console.log('Login successful, role:', data.role);
-
-        // Redirect to user page based on role
-        const roleRoutes = {
-          'admin': '/admin',
-          'coordinator': '/coordinator',
-          'therapist': '/therapist',
-          'intake': '/intake',
-          'patient': '/participant'
-        };
-
-        const redirectPath = roleRoutes[data.role] ?? '/landing';
+        const redirectPath = getRoleHomePath(data.role);
         console.log(' Redirecting to:', redirectPath);
         goto(redirectPath);
       } else {

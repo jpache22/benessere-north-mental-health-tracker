@@ -1,10 +1,14 @@
 <script>
   import "../app.css";
   import { onMount } from "svelte";
+  import { browser } from "$app/environment";
+  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
+  import { clearAuthSession, getAuthSession, getRoleHomePath } from "$lib/auth";
 
   let open = false;
   let darkMode = false;
+  let isAuthenticated = false;
 
   // current year
   if (typeof window !== "undefined") {
@@ -16,7 +20,12 @@
 
   // logout
   async function signout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (_) {
+      // Local-only auth still needs to be cleared if server logout route is unavailable.
+    }
+    clearAuthSession();
     location.href = "/login";
   }
 
@@ -35,6 +44,8 @@
   }
 
   onMount(() => {
+    syncAuth();
+
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark" || savedTheme === "light") {
       applyTheme(savedTheme === "dark");
@@ -43,9 +54,40 @@
     applyTheme(false);
   });
 
+  function syncAuth() {
+    const session = getAuthSession();
+    isAuthenticated = session.authenticated;
+  }
+
+  function enforceSession(pathname) {
+    const protectedPrefixes = ["/admin", "/coordinator", "/therapist", "/participant", "/intake", "/profile"];
+    const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
+    const session = getAuthSession();
+    isAuthenticated = session.authenticated;
+
+    if (isProtected && !session.authenticated) {
+      goto("/login");
+      return;
+    }
+
+    if (pathname.startsWith("/login") && session.authenticated) {
+      goto(getRoleHomePath(session.role));
+      return;
+    }
+
+    const roleHome = getRoleHomePath(session.role);
+    if (session.authenticated && pathname.startsWith("/admin") && session.role !== "admin") goto(roleHome);
+    if (session.authenticated && pathname.startsWith("/coordinator") && session.role !== "coordinator") goto(roleHome);
+    if (session.authenticated && pathname.startsWith("/therapist") && session.role !== "therapist") goto(roleHome);
+    if (session.authenticated && pathname.startsWith("/participant") && session.role !== "patient") goto(roleHome);
+    if (session.authenticated && pathname.startsWith("/intake") && session.role !== "intake") goto(roleHome);
+  }
+
   $: hideSignOut =
     $page.url.pathname.startsWith("/login") ||
     $page.url.pathname.startsWith("/landing");
+
+  $: if (browser) enforceSession($page.url.pathname);
 </script>
 
 <!-- 📌 FULL-PAGE FLEX WRAPPER -->
@@ -71,6 +113,9 @@
         <li><a href="/landing#features">Features</a></li>
         <li><a href="/landing#roles">Roles</a></li>
         <li><a href="/landing#contact">Contact</a></li>
+        {#if isAuthenticated}
+          <li><a class="btn small outline" href="/profile">Profile</a></li>
+        {/if}
         <li>
           <button class="btn small outline theme-toggle" on:click={toggleTheme}>
             {darkMode ? "Light mode" : "Dark mode"}
