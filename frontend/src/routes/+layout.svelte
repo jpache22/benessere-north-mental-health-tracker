@@ -1,8 +1,10 @@
 <script>
   import "../app.css";
+  import { onMount } from "svelte";
   import { page } from "$app/stores";
 
   let open = false;
+  let darkMode = false;
 
   // current year
   if (typeof window !== "undefined") {
@@ -17,6 +19,31 @@
     await fetch("/api/auth/logout", { method: "POST" });
     location.href = "/login";
   }
+
+  function applyTheme(isDark) {
+    darkMode = isDark;
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    }
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    }
+  }
+
+  function toggleTheme() {
+    applyTheme(!darkMode);
+  }
+
+  onMount(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark" || savedTheme === "light") {
+      applyTheme(savedTheme === "dark");
+      return;
+    }
+
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(prefersDark);
+  });
 
   $: hideSignOut =
     $page.url.pathname.startsWith("/login") ||
@@ -46,6 +73,11 @@
         <li><a href="/landing#features">Features</a></li>
         <li><a href="/landing#roles">Roles</a></li>
         <li><a href="/landing#contact">Contact</a></li>
+        <li>
+          <button class="btn small outline theme-toggle" on:click={toggleTheme}>
+            {darkMode ? "Light mode" : "Dark mode"}
+          </button>
+        </li>
 
         {#if hideSignOut}
           <li><a class="btn small outline" href="/login">Log in</a></li>
@@ -89,5 +121,9 @@
   .page-body {
     flex: 1;                /* push footer to bottom */
     display: block;
+  }
+
+  .theme-toggle {
+    min-width: 108px;
   }
 </style>
