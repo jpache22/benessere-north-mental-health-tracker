@@ -9,6 +9,7 @@
   let open = false;
   let darkMode = false;
   let isAuthenticated = false;
+  let dashboardPath = "/landing";
 
   // current year
   if (typeof window !== "undefined") {
@@ -57,6 +58,7 @@
   function syncAuth() {
     const session = getAuthSession();
     isAuthenticated = session.authenticated;
+    dashboardPath = getRoleHomePath(session.role);
   }
 
   function enforceSession(pathname) {
@@ -64,6 +66,7 @@
     const isProtected = protectedPrefixes.some((p) => pathname.startsWith(p));
     const session = getAuthSession();
     isAuthenticated = session.authenticated;
+    dashboardPath = getRoleHomePath(session.role);
 
     if (isProtected && !session.authenticated) {
       goto("/login");
@@ -82,10 +85,6 @@
     if (session.authenticated && pathname.startsWith("/participant") && session.role !== "patient") goto(roleHome);
     if (session.authenticated && pathname.startsWith("/intake") && session.role !== "intake") goto(roleHome);
   }
-
-  $: hideSignOut =
-    $page.url.pathname.startsWith("/login") ||
-    $page.url.pathname.startsWith("/landing");
 
   $: if (browser) enforceSession($page.url.pathname);
 </script>
@@ -114,6 +113,7 @@
         <li><a href="/landing#roles">Roles</a></li>
         <li><a href="/landing#contact">Contact</a></li>
         {#if isAuthenticated}
+          <li><a class="btn small outline" href={dashboardPath}>Dashboard</a></li>
           <li><a class="btn small outline" href="/profile">Profile</a></li>
         {/if}
         <li>
@@ -122,10 +122,10 @@
           </button>
         </li>
 
-        {#if hideSignOut}
-          <li><a class="btn small outline" href="/login">Log in</a></li>
-        {:else}
+        {#if isAuthenticated}
           <li><button class="btn small outline" on:click={signout}>Sign out</button></li>
+        {:else}
+          <li><a class="btn small outline" href="/login">Log in</a></li>
         {/if}
       </ul>
     </nav>

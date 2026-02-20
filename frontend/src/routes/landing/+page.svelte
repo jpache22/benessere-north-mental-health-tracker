@@ -1,8 +1,13 @@
 <script>
+  import { onMount } from "svelte";
+  import { getAuthSession, getRoleHomePath } from "$lib/auth";
+
   let tiltX = 0;
   let tiltY = 0;
   let glowX = 50;
   let glowY = 40;
+  let isAuthenticated = false;
+  let dashboardPath = "/landing";
 
   function handleCardMove(event) {
     const { left, top, width, height } = event.currentTarget.getBoundingClientRect();
@@ -21,6 +26,12 @@
     glowX = 50;
     glowY = 40;
   }
+
+  onMount(() => {
+    const session = getAuthSession();
+    isAuthenticated = session.authenticated;
+    dashboardPath = getRoleHomePath(session.role);
+  });
 </script>
 
 <main>
@@ -33,7 +44,9 @@
         with role-based workflows, progress visibility, and secure form operations.
       </p>
       <div class="cta-row">
-        <a class="btn" href="/login">Open workspace</a>
+        <a class="btn" href={isAuthenticated ? dashboardPath : "/login"}>
+          {isAuthenticated ? "Go to dashboard" : "Open workspace"}
+        </a>
         <a class="btn outline" href="#features">Explore platform</a>
       </div>
       <ul class="trust-row" aria-label="Trust and security highlights">
@@ -130,8 +143,13 @@
       <h2>Launch your next program with a cleaner workflow.</h2>
       <p>Set up teams, assign forms, and start tracking progress in minutes.</p>
       <div class="cta-row">
-        <a class="btn" href="/login">Log in</a>
-        <a class="btn outline" href="/register">Request access</a>
+        {#if isAuthenticated}
+          <a class="btn" href={dashboardPath}>Go to dashboard</a>
+          <a class="btn outline" href="/profile">Profile</a>
+        {:else}
+          <a class="btn" href="/login">Log in</a>
+          <a class="btn outline" href="/register">Request access</a>
+        {/if}
       </div>
     </div>
   </section>
