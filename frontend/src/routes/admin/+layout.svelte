@@ -5,7 +5,7 @@
 
 <div class="admin-shell">
   <nav class="top-nav" aria-label="Admin navigation">
-    <span class="top-title">Admin</span>
+    <a class="top-title" href="/admin" aria-label="Admin dashboard">Admin</a>
     <div class="top-links">
       <a class:active={is('/admin')} href="/admin">Dashboard</a>
       <a class:active={is('/admin/users')} href="/admin/users">Users & Roles</a>
@@ -13,7 +13,6 @@
       <a class:active={is('/admin/forms')} href="/admin/forms">Forms</a>
       <a class:active={is('/admin/attendance-overview')} href="/admin/attendance-overview">Attendance Overview</a>
       <a class:active={is('/admin/group-overview')} href="/admin/group-overview">Group Overview</a>
-      <a class:active={is('/admin/attendance')} href="/admin/attendance">Attendance Logs</a>
       <a class:active={is('/admin/access')} href="/admin/access">Access Control</a>
     </div>
   </nav>
@@ -31,47 +30,64 @@
   }
 
   .top-nav {
-    display: grid;
-    grid-template-columns: auto 1fr;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     margin: 0 auto;
-    max-width: 1120px;
-    padding: 14px 24px;
-    background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
-    border-radius: 14px;
+    max-width: 1160px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border: 1px solid #dbe5dc;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
     color: #fff;
   }
 
   .top-title {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #1f9f50 0%, #187f3f 100%);
+    color: #ffffff;
     font-weight: 700;
-    margin-right: 8px;
+    text-decoration: none;
+    white-space: nowrap;
   }
 
   .top-links {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
-    width: 100%;
+    flex: 1;
   }
 
   .top-links a {
-    color: #e6ffef;
+    color: #1e293b;
     text-decoration: none;
-    padding: 8px 12px;
+    font-weight: 600;
+    padding: 9px 12px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid #d9e5dc;
     text-align: center;
+    background: #f7faf7;
+    white-space: nowrap;
   }
 
   .top-links a:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: #ecf8ef;
+    border-color: #b7d9bf;
   }
 
   .top-links a.active {
-    background: #fff;
-    color: #166534;
-    border-color: #fff;
+    background: #1f9f50;
+    color: #ffffff;
+    border-color: #1f9f50;
+    box-shadow: 0 3px 10px rgba(31, 159, 80, 0.3);
   }
 
   .admin-content {
@@ -81,11 +97,19 @@
 
   @media (max-width: 640px) {
     .top-nav {
-      grid-template-columns: 1fr;
+      padding: 12px;
     }
 
     .top-title {
-      margin-right: 0;
+      width: 100%;
+    }
+
+    .top-links {
+      width: 100%;
+    }
+
+    .top-links a {
+      flex: 1 1 calc(50% - 8px);
     }
 
     .top-nav,
