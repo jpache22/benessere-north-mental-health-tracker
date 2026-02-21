@@ -101,7 +101,8 @@
 
 <!-- 📌 FULL-PAGE FLEX WRAPPER -->
 <div class="layout-wrapper">
-  <header class="site-header {headerCollapsed ? 'collapsed' : ''}">
+  {#if !headerCollapsed}
+    <header class="site-header">
     <nav class="nav container" aria-label="Primary">
       <a class="brand" href="/landing">
         <span class="logo">BN</span>
@@ -141,18 +142,8 @@
         {/if}
       </ul>
     </nav>
-    <button
-      class="theme-fab {darkMode ? 'dark' : 'light'}"
-      on:click={toggleTheme}
-      aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-      aria-pressed={darkMode}
-    >
-      <span class="theme-switch" aria-hidden="true">
-        <span class="theme-knob"></span>
-      </span>
-      <span class="theme-fab-label">{darkMode ? "Dark mode" : "Light mode"}</span>
-    </button>
-  </header>
+    </header>
+  {/if}
   {#if headerCollapsed}
     <button
       class="header-reopen-btn"
@@ -163,6 +154,17 @@
       <span aria-hidden="true">&#9660;</span>
     </button>
   {/if}
+  <button
+    class="theme-fab {darkMode ? 'dark' : 'light'}"
+    on:click={toggleTheme}
+    aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+    aria-pressed={darkMode}
+  >
+    <span class="theme-switch" aria-hidden="true">
+      <span class="theme-knob"></span>
+    </span>
+    <span class="theme-fab-label">{darkMode ? "Dark mode" : "Light mode"}</span>
+  </button>
 
   <!-- FLEXED MAIN CONTENT -->
   <main class="page-body">
@@ -192,20 +194,6 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;      /* full screen */
-  }
-
-  .site-header {
-    transition: transform .25s ease, opacity .2s ease, max-height .25s ease, border-color .25s ease;
-    max-height: 92px;
-    overflow: hidden;
-  }
-
-  .site-header.collapsed {
-    transform: translateY(-100%);
-    opacity: 0;
-    max-height: 0;
-    border-bottom-color: transparent;
-    pointer-events: none;
   }
 
   .page-body {
@@ -244,7 +232,7 @@
 
   .header-reopen-btn {
     position: fixed;
-    top: 8px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
     width: 34px;
