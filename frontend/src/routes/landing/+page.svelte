@@ -8,6 +8,7 @@
   let glowY = 40;
   let isAuthenticated = false;
   let dashboardPath = "/landing";
+  let reveal = false;
   const roleCards = [
     {
       role: "Coordinator",
@@ -48,12 +49,15 @@
     const session = getAuthSession();
     isAuthenticated = session.authenticated;
     dashboardPath = getRoleHomePath(session.role);
+    requestAnimationFrame(() => {
+      reveal = true;
+    });
   });
 </script>
 
-<main>
-  <section class="hero container">
-    <div class="hero-copy">
+<main class="landing-shell {reveal ? 'is-visible' : ''}">
+  <section class="hero container reveal delay-1">
+    <div class="hero-copy reveal delay-2">
       <p class="eyebrow">Mental health operations platform</p>
       <h1>A professional workspace for outcomes, attendance, and care coordination.</h1>
       <p class="sub">
@@ -73,7 +77,7 @@
       </ul>
     </div>
 
-    <div class="hero-art">
+    <div class="hero-art reveal delay-3">
       <div
         class="interactive-panel"
         on:mousemove={handleCardMove}
@@ -111,7 +115,7 @@
     </div>
   </section>
 
-  <section id="features" class="features container">
+  <section id="features" class="features container reveal delay-2">
     <h2>Designed for teams that need clarity and control</h2>
     <div class="feature-grid">
       <article class="feature-card">
@@ -133,7 +137,7 @@
     </div>
   </section>
 
-  <section id="roles" class="roles container">
+  <section id="roles" class="roles container reveal delay-3">
     <h2>Purpose-built for each role</h2>
     <div class="role-grid">
       {#each roleCards as role}
@@ -142,7 +146,6 @@
             <div class="role-face role-front">
               <h3>{role.role}</h3>
               <p>{role.summary}</p>
-              <span class="role-hint">Hover to flip</span>
             </div>
             <div class="role-face role-back">
               <h3>{role.role} Insight</h3>
@@ -154,7 +157,7 @@
     </div>
   </section>
 
-  <section id="contact" class="cta container">
+  <section id="contact" class="cta container reveal delay-4">
     <div class="cta-card">
       <h2>Launch your next program with a cleaner workflow.</h2>
       <p>Set up teams, assign forms, and start tracking progress in minutes.</p>
@@ -172,6 +175,30 @@
 </main>
 
 <style>
+  .landing-shell .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 700ms ease, transform 700ms ease;
+  }
+
+  .landing-shell.is-visible .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .landing-shell .delay-1 { transition-delay: 60ms; }
+  .landing-shell .delay-2 { transition-delay: 140ms; }
+  .landing-shell .delay-3 { transition-delay: 220ms; }
+  .landing-shell .delay-4 { transition-delay: 300ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .landing-shell .reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
   .hero {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr;
@@ -421,19 +448,6 @@
   :global(:root[data-theme='dark']) .role-face h3,
   :global(:root[data-theme='dark']) .role-face p {
     color: #e2e8f0;
-  }
-
-  :global(:root[data-theme='dark']) .role-hint {
-    color: #86efac;
-  }
-
-  .role-hint {
-    margin-top: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #0f766e;
   }
 
   .cta-card {

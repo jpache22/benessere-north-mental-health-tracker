@@ -7,7 +7,7 @@
   import { clearAuthSession, getAuthSession, getRoleHomePath } from "$lib/auth";
 
   let open = false;
-  let navCollapsed = false;
+  let headerCollapsed = false;
   let darkMode = false;
   let isAuthenticated = false;
   let dashboardPath = "/landing";
@@ -45,10 +45,10 @@
     applyTheme(!darkMode);
   }
 
-  function toggleNavCollapsed() {
-    navCollapsed = !navCollapsed;
+  function toggleHeaderCollapsed() {
+    headerCollapsed = !headerCollapsed;
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem("navCollapsed", navCollapsed ? "1" : "0");
+      localStorage.setItem("headerCollapsed", headerCollapsed ? "1" : "0");
     }
   }
 
@@ -62,7 +62,7 @@
       applyTheme(false);
     }
 
-    navCollapsed = localStorage.getItem("navCollapsed") === "1";
+    headerCollapsed = localStorage.getItem("headerCollapsed") === "1";
   });
 
   function syncAuth() {
@@ -101,20 +101,19 @@
 
 <!-- 📌 FULL-PAGE FLEX WRAPPER -->
 <div class="layout-wrapper">
-  <header class="site-header">
+  <header class="site-header {headerCollapsed ? 'collapsed' : ''}">
     <nav class="nav container" aria-label="Primary">
       <a class="brand" href="/landing">
         <span class="logo">BN</span>
         <span class="brand-text">Benessere North</span>
       </a>
       <button
-        class="nav-collapse-btn {navCollapsed ? 'collapsed' : ''}"
-        on:click={toggleNavCollapsed}
-        aria-label={navCollapsed ? "Expand navigation links" : "Collapse navigation links"}
-        aria-pressed={navCollapsed}
-        title={navCollapsed ? "Expand navigation" : "Collapse navigation"}
+        class="header-collapse-btn"
+        on:click={toggleHeaderCollapsed}
+        aria-label="Collapse global header"
+        title="Collapse global header"
       >
-        <span aria-hidden="true">&#10094;</span>
+        <span aria-hidden="true">&#9650;</span>
       </button>
 
       <button
@@ -127,7 +126,7 @@
         ☰
       </button>
 
-      <ul id="navList" class="nav-list {open ? 'show' : ''} {navCollapsed ? 'collapsed' : ''}">
+      <ul id="navList" class="nav-list {open ? 'show' : ''}">
         <li><a class="nav-item" href="/landing#features">Features</a></li>
         <li><a class="nav-item" href="/landing#roles">Roles</a></li>
         <li><a class="nav-item" href="/landing#contact">Contact</a></li>
@@ -154,6 +153,16 @@
       <span class="theme-fab-label">{darkMode ? "Dark mode" : "Light mode"}</span>
     </button>
   </header>
+  {#if headerCollapsed}
+    <button
+      class="header-reopen-btn"
+      on:click={toggleHeaderCollapsed}
+      aria-label="Reopen global header"
+      title="Reopen global header"
+    >
+      <span aria-hidden="true">&#9660;</span>
+    </button>
+  {/if}
 
   <!-- FLEXED MAIN CONTENT -->
   <main class="page-body">
@@ -185,6 +194,20 @@
     min-height: 100vh;      /* full screen */
   }
 
+  .site-header {
+    transition: transform .25s ease, opacity .2s ease, max-height .25s ease, border-color .25s ease;
+    max-height: 92px;
+    overflow: hidden;
+  }
+
+  .site-header.collapsed {
+    transform: translateY(-100%);
+    opacity: 0;
+    max-height: 0;
+    border-bottom-color: transparent;
+    pointer-events: none;
+  }
+
   .page-body {
     flex: 1;                /* push footer to bottom */
     display: block;
@@ -194,8 +217,8 @@
     padding-right: 120px;
   }
 
-  .nav-collapse-btn {
-    margin-left: auto;
+  .header-collapse-btn {
+    margin-left: 12px;
     width: 30px;
     height: 30px;
     border: 1px solid var(--border);
@@ -209,19 +232,38 @@
     transition: transform .2s, border-color .2s, color .2s;
   }
 
-  .nav-collapse-btn:hover {
+  .header-collapse-btn:hover {
     border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
     color: var(--brand);
   }
 
-  .nav-collapse-btn span {
+  .header-collapse-btn span {
     font-size: 0.85rem;
-    transform: translateX(-1px);
-    transition: transform .2s;
+    transform: translateY(-1px);
   }
 
-  .nav-collapse-btn.collapsed span {
-    transform: rotate(180deg) translateX(1px);
+  .header-reopen-btn {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 24px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    color: var(--nav-link);
+    z-index: 45;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+  }
+
+  .header-reopen-btn:hover {
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
+    color: var(--brand);
   }
 
   .theme-fab {
@@ -285,7 +327,8 @@
   }
 
   @media (max-width: 960px) {
-    .nav-collapse-btn {
+    .header-collapse-btn,
+    .header-reopen-btn {
       display: none;
     }
 

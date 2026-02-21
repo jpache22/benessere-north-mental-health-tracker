@@ -62,7 +62,6 @@ body{
 .brand-text{font-weight:800;letter-spacing:.2px}
 .menu-btn{margin-left:auto;display:none;border:0;background:transparent;font-size:22px;cursor:pointer}
 .nav-list{display:flex;align-items:center;gap:14px;list-style:none;margin-left:0;padding:0}
-.nav-list.collapsed{display:none !important}
 .nav-list li{display:flex;align-items:center}
 .nav-list a{color:var(--nav-link)}
 .nav-list button{color:var(--nav-link)}
