@@ -71,20 +71,18 @@ body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-height:38px;
-  padding:9px 14px;
-  border-radius:12px;
-  border:1px solid var(--border);
-  background:color-mix(in srgb, var(--card) 88%, transparent);
+  min-height:32px;
+  padding:6px 2px;
+  border:0;
+  background:transparent;
   color:var(--nav-link);
   font-weight:600;
   line-height:1;
-  transition:background .16s,border-color .16s,color .16s;
+  transition:color .16s;
 }
 .nav-list .nav-item:hover{
   text-decoration:none;
-  border-color:color-mix(in srgb, var(--brand) 55%, var(--border));
-  background:color-mix(in srgb, var(--brand) 10%, var(--card));
+  color:color-mix(in srgb, var(--brand-strong) 75%, var(--nav-link));
 }
 
 /* NEW: push footer to bottom and add breathing room */

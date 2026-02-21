@@ -116,12 +116,6 @@
           <li><a class="nav-item" href={dashboardPath}>Dashboard</a></li>
           <li><a class="nav-item" href="/profile">Profile</a></li>
         {/if}
-        <li>
-          <button class="nav-item theme-toggle" on:click={toggleTheme}>
-            {darkMode ? "Light mode" : "Dark mode"}
-          </button>
-        </li>
-
         {#if isAuthenticated}
           <li><button class="nav-item" on:click={signout}>Sign out</button></li>
         {:else}
@@ -129,6 +123,17 @@
         {/if}
       </ul>
     </nav>
+    <button
+      class="theme-fab {darkMode ? 'dark' : 'light'}"
+      on:click={toggleTheme}
+      aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={darkMode}
+    >
+      <span class="theme-switch" aria-hidden="true">
+        <span class="theme-knob"></span>
+      </span>
+      <span class="theme-fab-label">{darkMode ? "Dark mode" : "Light mode"}</span>
+    </button>
   </header>
 
   <!-- FLEXED MAIN CONTENT -->
@@ -166,7 +171,81 @@
     display: block;
   }
 
-  .theme-toggle {
-    min-width: 108px;
+  .nav {
+    padding-right: 120px;
+  }
+
+  .theme-fab {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 40;
+    height: 42px;
+    padding: 0 12px 0 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s, background .2s;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+  }
+
+  .theme-fab:hover {
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  }
+
+  .theme-switch {
+    width: 42px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #e2e8f0;
+    position: relative;
+    transition: background .25s;
+  }
+
+  .theme-knob {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+    transition: transform .25s ease;
+  }
+
+  .theme-fab.dark .theme-switch {
+    background: color-mix(in srgb, var(--brand) 38%, #0f172a);
+  }
+
+  .theme-fab.dark .theme-knob {
+    transform: translateX(20px);
+  }
+
+  .theme-fab-label {
+    min-width: 74px;
+    text-align: left;
+  }
+
+  @media (max-width: 960px) {
+    .nav {
+      padding-right: 108px;
+    }
+
+    .theme-fab-label {
+      display: none;
+    }
+
+    .theme-fab {
+      padding-right: 10px;
+    }
   }
 </style>
