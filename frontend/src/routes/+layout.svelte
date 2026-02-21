@@ -109,23 +109,23 @@
       </button>
 
       <ul id="navList" class="nav-list {open ? 'show' : ''}">
-        <li><a href="/landing#features">Features</a></li>
-        <li><a href="/landing#roles">Roles</a></li>
-        <li><a href="/landing#contact">Contact</a></li>
+        <li><a class="nav-item" href="/landing#features">Features</a></li>
+        <li><a class="nav-item" href="/landing#roles">Roles</a></li>
+        <li><a class="nav-item" href="/landing#contact">Contact</a></li>
         {#if isAuthenticated}
-          <li><a class="btn small outline" href={dashboardPath}>Dashboard</a></li>
-          <li><a class="btn small outline" href="/profile">Profile</a></li>
+          <li><a class="nav-item" href={dashboardPath}>Dashboard</a></li>
+          <li><a class="nav-item" href="/profile">Profile</a></li>
         {/if}
         <li>
-          <button class="btn small outline theme-toggle" on:click={toggleTheme}>
+          <button class="nav-item theme-toggle" on:click={toggleTheme}>
             {darkMode ? "Light mode" : "Dark mode"}
           </button>
         </li>
 
         {#if isAuthenticated}
-          <li><button class="btn small outline" on:click={signout}>Sign out</button></li>
+          <li><button class="nav-item" on:click={signout}>Sign out</button></li>
         {:else}
-          <li><a class="btn small outline" href="/login">Log in</a></li>
+          <li><a class="nav-item" href="/login">Log in</a></li>
         {/if}
       </ul>
     </nav>
