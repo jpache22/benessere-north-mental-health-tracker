@@ -8,6 +8,23 @@
   let glowY = 40;
   let isAuthenticated = false;
   let dashboardPath = "/landing";
+  const roleCards = [
+    {
+      role: "Coordinator",
+      summary: "Manage projects, groups, schedules, and assignment cycles.",
+      insight: "Owns team operations, timeline setup, and participant flow across the full care program."
+    },
+    {
+      role: "Therapist",
+      summary: "Review participant progress and maintain session continuity.",
+      insight: "Tracks outcomes over time, documents attendance patterns, and acts on missed-session risk quickly."
+    },
+    {
+      role: "Participant",
+      summary: "Complete forms and monitor personal milestones in one portal.",
+      insight: "Sees upcoming forms, completion history, and progress in a simple, private experience."
+    }
+  ];
 
   function handleCardMove(event) {
     const { left, top, width, height } = event.currentTarget.getBoundingClientRect();
@@ -119,22 +136,21 @@
   <section id="roles" class="roles container">
     <h2>Purpose-built for each role</h2>
     <div class="role-grid">
-      <article class="role-card">
-        <h3>Admin</h3>
-        <p>Configure access, forms, and organization-wide workflows.</p>
-      </article>
-      <article class="role-card">
-        <h3>Coordinator</h3>
-        <p>Manage projects, groups, schedules, and assignment cycles.</p>
-      </article>
-      <article class="role-card">
-        <h3>Therapist</h3>
-        <p>Review participant progress and maintain session continuity.</p>
-      </article>
-      <article class="role-card">
-        <h3>Participant</h3>
-        <p>Complete forms and monitor personal milestones in one portal.</p>
-      </article>
+      {#each roleCards as role}
+        <button type="button" class="role-flip" aria-label={"Flip " + role.role + " role card"}>
+          <div class="role-flip-inner">
+            <div class="role-face role-front">
+              <h3>{role.role}</h3>
+              <p>{role.summary}</p>
+              <span class="role-hint">Hover to flip</span>
+            </div>
+            <div class="role-face role-back">
+              <h3>{role.role} Insight</h3>
+              <p>{role.insight}</p>
+            </div>
+          </div>
+        </button>
+      {/each}
     </div>
   </section>
 
@@ -306,28 +322,118 @@
   .feature-grid,
   .role-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .feature-card,
-  .role-card {
+  .feature-card {
     background: #ffffff;
     border: 1px solid #e2e8e4;
     border-radius: 14px;
     padding: 16px;
   }
 
-  .feature-card h3,
-  .role-card h3 {
+  .feature-card h3 {
     margin: 0 0 8px;
     font-size: 1rem;
   }
 
-  .feature-card p,
-  .role-card p {
+  .feature-card p {
     margin: 0;
     color: var(--muted);
+  }
+
+  .role-flip {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    perspective: 1000px;
+    min-height: 168px;
+  }
+
+  .role-flip:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--brand) 70%, #ffffff);
+    outline-offset: 4px;
+    border-radius: 16px;
+  }
+
+  .role-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 168px;
+    transform-style: preserve-3d;
+    transition: transform 600ms cubic-bezier(.2, .7, .2, 1);
+  }
+
+  .role-flip:hover .role-flip-inner,
+  .role-flip:focus-within .role-flip-inner,
+  .role-flip:focus .role-flip-inner {
+    transform: rotateY(180deg);
+  }
+
+  .role-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    border: 1px solid #d9e7dc;
+    padding: 16px;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .role-front {
+    background: linear-gradient(180deg, #ffffff 0%, #f6fbf8 100%);
+  }
+
+  .role-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(180deg, #f0fff4 0%, #dcfce7 100%);
+    border-color: #bfe9cb;
+  }
+
+  .role-face h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .role-face p {
+    margin: 0;
+    color: #475569;
+  }
+
+  :global(:root[data-theme='dark']) .role-front {
+    background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+    border-color: #334155;
+  }
+
+  :global(:root[data-theme='dark']) .role-back {
+    background: linear-gradient(180deg, #0f172a 0%, #14532d 100%);
+    border-color: #166534;
+  }
+
+  :global(:root[data-theme='dark']) .role-face h3,
+  :global(:root[data-theme='dark']) .role-face p {
+    color: #e2e8f0;
+  }
+
+  :global(:root[data-theme='dark']) .role-hint {
+    color: #86efac;
+  }
+
+  .role-hint {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0f766e;
   }
 
   .cta-card {

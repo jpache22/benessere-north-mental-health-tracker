@@ -7,6 +7,7 @@
   import { clearAuthSession, getAuthSession, getRoleHomePath } from "$lib/auth";
 
   let open = false;
+  let navCollapsed = false;
   let darkMode = false;
   let isAuthenticated = false;
   let dashboardPath = "/landing";
@@ -44,15 +45,24 @@
     applyTheme(!darkMode);
   }
 
+  function toggleNavCollapsed() {
+    navCollapsed = !navCollapsed;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("navCollapsed", navCollapsed ? "1" : "0");
+    }
+  }
+
   onMount(() => {
     syncAuth();
 
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark" || savedTheme === "light") {
       applyTheme(savedTheme === "dark");
-      return;
+    } else {
+      applyTheme(false);
     }
-    applyTheme(false);
+
+    navCollapsed = localStorage.getItem("navCollapsed") === "1";
   });
 
   function syncAuth() {
@@ -97,6 +107,15 @@
         <span class="logo">BN</span>
         <span class="brand-text">Benessere North</span>
       </a>
+      <button
+        class="nav-collapse-btn {navCollapsed ? 'collapsed' : ''}"
+        on:click={toggleNavCollapsed}
+        aria-label={navCollapsed ? "Expand navigation links" : "Collapse navigation links"}
+        aria-pressed={navCollapsed}
+        title={navCollapsed ? "Expand navigation" : "Collapse navigation"}
+      >
+        <span aria-hidden="true">&#10094;</span>
+      </button>
 
       <button
         class="menu-btn"
@@ -108,7 +127,7 @@
         ☰
       </button>
 
-      <ul id="navList" class="nav-list {open ? 'show' : ''}">
+      <ul id="navList" class="nav-list {open ? 'show' : ''} {navCollapsed ? 'collapsed' : ''}">
         <li><a class="nav-item" href="/landing#features">Features</a></li>
         <li><a class="nav-item" href="/landing#roles">Roles</a></li>
         <li><a class="nav-item" href="/landing#contact">Contact</a></li>
@@ -175,6 +194,36 @@
     padding-right: 120px;
   }
 
+  .nav-collapse-btn {
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--card) 84%, transparent);
+    color: var(--nav-link);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .2s, border-color .2s, color .2s;
+  }
+
+  .nav-collapse-btn:hover {
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
+    color: var(--brand);
+  }
+
+  .nav-collapse-btn span {
+    font-size: 0.85rem;
+    transform: translateX(-1px);
+    transition: transform .2s;
+  }
+
+  .nav-collapse-btn.collapsed span {
+    transform: rotate(180deg) translateX(1px);
+  }
+
   .theme-fab {
     position: fixed;
     top: 12px;
@@ -236,6 +285,10 @@
   }
 
   @media (max-width: 960px) {
+    .nav-collapse-btn {
+      display: none;
+    }
+
     .nav {
       padding-right: 108px;
     }

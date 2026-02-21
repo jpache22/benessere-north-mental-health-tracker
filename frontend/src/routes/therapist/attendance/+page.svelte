@@ -191,6 +191,7 @@
 	.group-selector label {
 		font-weight: 500;
 		font-size: 1rem;
+		color: #0f172a;
 	}
 	
 	.group-selector select {
@@ -211,12 +212,14 @@
 	
 	.legend-label {
 		font-weight: 500;
+		color: #0f172a;
 	}
 	
 	.legend-item {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		color: #0f172a;
 	}
 	
 	.icon {
@@ -286,6 +289,7 @@
 	.name-cell {
 		font-weight: 500;
 		background: #f9fafb;
+		color: #111827;
 	}
 	
 	.attendance-cell {
@@ -366,5 +370,43 @@
 	
 	.opacity-40 {
 		opacity: 0.4;
+	}
+
+	:global(:root[data-theme='dark']) .page-title,
+	:global(:root[data-theme='dark']) .group-selector label,
+	:global(:root[data-theme='dark']) .legend-label,
+	:global(:root[data-theme='dark']) .legend-item,
+	:global(:root[data-theme='dark']) .name-cell,
+	:global(:root[data-theme='dark']) .session-header,
+	:global(:root[data-theme='dark']) .name-header {
+		color: #e5e7eb;
+	}
+
+	:global(:root[data-theme='dark']) .group-selector select {
+		background: #111827;
+		color: #e5e7eb;
+		border-color: #334155;
+	}
+
+	:global(:root[data-theme='dark']) .table-wrapper {
+		background: #111827;
+		border: 1px solid #334155;
+	}
+
+	:global(:root[data-theme='dark']) .attendance-table thead tr {
+		background: #1f2937;
+	}
+
+	:global(:root[data-theme='dark']) .attendance-table th,
+	:global(:root[data-theme='dark']) .attendance-table td {
+		border-color: #334155;
+	}
+
+	:global(:root[data-theme='dark']) .name-cell {
+		background: #1f2937;
+	}
+
+	:global(:root[data-theme='dark']) .bg-white {
+		background: #0f172a;
 	}
 </style>

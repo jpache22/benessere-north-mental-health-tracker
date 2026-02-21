@@ -133,11 +133,35 @@
 <style>
   .page-groupOverview .content-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
   .page-groupOverview .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .page-groupOverview h1,
+  .page-groupOverview b{color:#0f172a}
   .grid-wrapper{max-width: 100vw; overflow-x: auto; overflow-y: hidden;}
   .grid {display: grid;gap: 6px;align-items: stretch;min-width: max-content;}
-  .header {font-weight: 600;background: #f3f3f3;padding: 8px;text-align: center;}
-  .patient {font-weight: 500;padding: 8px;text-align: center;}
-  .cell {padding: 6px;background: #fafafa;display: flex;flex-direction: column;gap: 0px;}
+  .header {font-weight: 600;background: #f3f3f3;padding: 8px;text-align: center;color:#111827}
+  .patient {font-weight: 500;padding: 8px;text-align: center;color:#111827}
+  .cell {padding: 6px;background: #fafafa;display: flex;flex-direction: column;gap: 0px;color:#111827}
   .pill {padding: 4px 6px;font-size: 0.8rem;text-align: center;font-weight: bolder;font-size: 13px;}
   .empty {color: #999;}
+
+  :global(:root[data-theme='dark']) .page-groupOverview h1,
+  :global(:root[data-theme='dark']) .page-groupOverview b,
+  :global(:root[data-theme='dark']) .header,
+  :global(:root[data-theme='dark']) .patient,
+  :global(:root[data-theme='dark']) .cell,
+  :global(:root[data-theme='dark']) .empty {
+    color: #e5e7eb;
+  }
+
+  :global(:root[data-theme='dark']) .header {
+    background: #1f2937;
+  }
+
+  :global(:root[data-theme='dark']) .cell {
+    background: #0f172a;
+    border: 1px solid #334155;
+  }
+
+  :global(:root[data-theme='dark']) .empty {
+    color: #94a3b8;
+  }
 </style>
