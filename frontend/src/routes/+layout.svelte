@@ -103,22 +103,14 @@
 <div class="layout-wrapper">
   {#if !headerCollapsed}
     <header class="site-header">
-    <nav class="nav container" aria-label="Primary">
-      <a class="brand" href="/landing">
-        <span class="logo">BN</span>
-        <span class="brand-text">Benessere North</span>
-      </a>
-      <button
-        class="header-collapse-btn"
-        on:click={toggleHeaderCollapsed}
-        aria-label="Collapse global header"
-        title="Collapse global header"
-      >
-        <span aria-hidden="true">&#9650;</span>
-      </button>
+      <nav class="nav container" aria-label="Primary">
+        <a class="brand" href="/landing">
+          <span class="logo">BN</span>
+          <span class="brand-text">Benessere North</span>
+        </a>
 
-      <button
-        class="menu-btn"
+        <button
+          class="menu-btn"
         aria-label="Toggle menu"
         aria-expanded={open}
         aria-controls="navList"
@@ -141,7 +133,15 @@
           <li><a class="nav-item" href="/login">Log in</a></li>
         {/if}
       </ul>
-    </nav>
+      </nav>
+      <button
+        class="header-collapse-btn"
+        on:click={toggleHeaderCollapsed}
+        aria-label="Collapse global header"
+        title="Collapse global header"
+      >
+        <span aria-hidden="true">&#9650;</span>
+      </button>
     </header>
   {/if}
   {#if headerCollapsed}
@@ -206,7 +206,10 @@
   }
 
   .header-collapse-btn {
-    margin-left: 12px;
+    position: absolute;
+    left: 50%;
+    bottom: -12px;
+    transform: translateX(-50%);
     width: 30px;
     height: 30px;
     border: 1px solid var(--border);
@@ -218,6 +221,7 @@
     justify-content: center;
     cursor: pointer;
     transition: transform .2s, border-color .2s, color .2s;
+    z-index: 26;
   }
 
   .header-collapse-btn:hover {
