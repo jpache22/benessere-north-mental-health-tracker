@@ -1,36 +1,98 @@
 <script lang="ts">
-    // This will be removed and adapted in later development
-    // Needed to hardcode example data for the grid
-    import { patients, screeningForms, pregroupForms, sessionForms, postgroupForms, sessionDates} from "./mockPatients";
+    import { API_BASE, MAX } from "./constants";
+    import { onMount } from "svelte";
 
-    export  const sessionCol: string[] = [];
+    let errorMsg: string | null = null; // should still be empty
+    // group state 
+    let groups: any[] = [];
+    let selectedGroupId: number | null = null;
+    let selectedGroup: any = null;
+    // data from json
+    let patients = [];
 
-    // set the sessionCol value
-    let sessionCell = sessionForms.join("/")
-    sessionDates.forEach(d => {
-        sessionCol.push(sessionCell)
+    let screeningForms = [];
+    let pregroupForms = [];
+    let sessionForms = [];
+    let postgroupForms = [];
+
+    let sessionDates = [];
+    let totalCol = [];
+
+    onMount(async () => {
+        const token = localStorage.getItem("authToken");
+        if (!token) {
+            errorMsg = "Not authenticated.";
+            return;
+        }
+
+        try {
+            const therapistId = localStorage.getItem("userId");
+            const FETCH_URL = `${API_BASE}/patientData/therapist/${therapistId}`;
+
+            const response = await fetch(FETCH_URL, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const groupOverviewData = await response.json();
+
+            if (groupOverviewData.success == false) {
+                errorMsg = "Unable to load group overview data.";
+                return;
+            } else {
+                // get the data needed for the table
+                groups = groupOverviewData.patientData.groups ?? []; // array of all the group json
+                // will update to be dynamic with dropdown
+                if (groups.length > 0) {
+                    selectedGroupId = groups[0].group_id;
+                } else {
+                    errorMsg = "You have been assigned to no groups."
+                    return; // no groups to fetch means no table to display
+                }
+
+
+            }
+
+        } catch (err) {
+            errorMsg = "Network error.";
+            console.error(err);
+        }
     });
 
-    // might not need this
-    const totalCol = [].concat(screeningForms, pregroupForms, sessionCol, postgroupForms)
+    $: {
+        errorMsg = null; // reset each time group is changed
+        selectedGroup = groups.find(g => g.group_id === selectedGroupId) ?? null;
+        patients = selectedGroup?.patients ?? [];
 
+        if (patients.length == 0) {
+            errorMsg = "No patients have been assigned to this group yet."
+        } else {
+            // get list of all the forms
+            screeningForms = selectedGroup?.project_forms?.screening?? [];
+            pregroupForms = selectedGroup?.project_forms?.pregroup ?? [];
+            postgroupForms = selectedGroup?.project_forms?.postgroup ?? [];
+            sessionForms = selectedGroup?.project_forms?.session ?? [];
+            sessionDates = selectedGroup?.session_dates ?? [];
 
-    export const bottomCol = ["Pre-group"].concat(sessionDates, "Post-group")
+            // temp needed for the form name formatting of the top title row
+            let joinedFormNames = sessionForms.join("/");
+            let sessionFormNameCols = []
+            sessionDates.forEach(d => { sessionFormNameCols.push(joinedFormNames)});
+            // total columns (also top row of table)
+            totalCol = [
+                ...screeningForms,
+                ...pregroupForms,
+                ...sessionFormNameCols,
+                ...postgroupForms
+            ];
+        }
+    }
 
-    // max values for each test, will be moved to a different file later
-    const MAX = {
-        PHQ9: 27,
-        EPDS: 30
-    };
-
-    // will go in another file later
     function colorFor(form: string, score: number) {
-        const max = MAX[form]; // all forms implemented will be in max
+        const max = MAX[form]; // max score possible for input form
         
-        const hue = 120 - (score / max) * 120;
-        //const lightness = 60 - 25 * (score/max);
+        const hue = 120 - (score/max) * 120;
         return `hsl(${hue}, 100%, 55%)`
-    } 
+    }
 </script>
 
 
@@ -40,92 +102,101 @@
         <h1>Group Overview</h1>
         <div class="actions">
             <b style="font-size:20px">Group:</b>
-            <select class="input">
-                <option>Group 1</option>
-                <option>Group 2</option>
+            <select class="input" bind:value={selectedGroupId}>
+                {#each groups as g} 
+                    <option value={g.group_id}>{g.grouplabel}</option>
+                {/each}
             </select>
         </div>
     </header>
-    <b style="font-size:20px">The first column represents the screening form scores for this group.</b>
 </section>
 
-<div class="grid-wrapper">
+{#if errorMsg}
+    <b style="font-size:20px; color:red">{errorMsg}</b>
+{:else}
+    {#if selectedGroup}
+        <b style="font-size:20px">The first column represents the screening form scores for this group.</b>
+        <div class="grid-wrapper">
 
-    <!-- Create the grid for the selected group -->
-    <div class="grid" style="grid-template-columns: 100px repeat({totalCol.length}, 140px);">
-        <!-- top-left empty cell -->
-        <div class="header"></div>
-        <!-- Form columns -->
-        {#each totalCol as col}
-            <div class="header">
-                {col}
-            </div>
-        {/each}
+            <!-- Create the grid for the selected group -->
+            <div class="grid" style="grid-template-columns: 100px repeat({totalCol.length}, 140px);">
+                <!-- top-left empty cell -->
+                <div class="header"></div>
+                <!-- Form columns -->
+                {#each totalCol as col}
+                    <div class="header">
+                        {col}
+                    </div>
+                {/each}
 
-        <!-- Data Rows -->
-        {#each patients as p}
-            <div class="patient">{p.name}</div>
-            <!-- screening form scores-->
-            {#each screeningForms as s }
-                <div class="cell">
-                    {#if p.scores?.screening[s] !== undefined}
-                        <div class="pill" style="background-color: {colorFor(s, p.scores.screening[s])};flex: 1;display: flex;align-items: center;justify-content: center">{p.scores.screening[s]}</div>
-                    {:else}
-                        <span class="empty"> </span>
-                    {/if}
-                </div>
-            {/each}
-            <!-- Pre group forms -->
-            {#each pregroupForms as pf}
-                <div class="cell">
-                    {#if p.scores?.pregroup[pf] !== undefined}
-                        <div class="pill" style="background-color: {colorFor(pf, p.scores.pregroup[pf])};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.pregroup[pf]}</div>
-                    {:else}
-                        <span class="empty"> </span>
-                    {/if}
-                </div>
-            {/each}
-            <!-- session forms -->
-            {#each sessionDates as date}
-                <div class="cell">
-                <!-- check if there is any form data for that date-->
-                {#if p.scores[date] != undefined}
-                    <!-- now look at the specific forms -->
-                    {#each sessionForms as sf}
-                        <!-- if there is data for that form make it-->
-                        {#if p.scores[date][sf] != undefined}
-                            <div class="pill" style="background-color: {colorFor(sf, p.scores[date][sf])}">{p.scores[date][sf]}</div>
-                        {:else}
-                            <span class="empty"> </span>
-                        {/if}
+                <!-- Data Rows -->
+                {#each patients as p}
+                    <div class="patient">{p.username}</div>
+                    <!-- screening form scores-->
+                    {#each screeningForms as s }
+                        <div class="cell">
+                            {#if p.scores?.screening?.[s]}
+                                <div class="pill" style="background-color: {colorFor(s, p.scores.screening[s].total_score)};flex: 1;display: flex;align-items: center;justify-content: center">{p.scores.screening[s].total_score}</div>
+                            {:else}
+                                <span class="empty"> </span>
+                            {/if}
+                        </div>
                     {/each}
-                {:else}
-                    <span class="empty"> </span>    
-                {/if}
-                </div>
-            {/each}
-            <!-- post group forms-->
-            {#each postgroupForms as pf}
-                <div class="cell">
-                    {#if p.scores?.postgroup[pf] != undefined}
-                        <div class="pill" style="background-color: {colorFor(pf, p.scores.postgroup[pf])};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.postgroup[pf]}</div>
-                    {:else}
-                        <span class="empty"> </span>
-                    {/if}
-                </div>
-            {/each}
-        {/each}
+                    <!-- Pre group forms -->
+                    {#each pregroupForms as pf}
+                        <div class="cell">
+                            {#if p.scores?.pregroup?.[pf]}
+                                <div class="pill" style="background-color: {colorFor(pf, p.scores.pregroup[pf].total_score)};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.pregroup[pf].total_score}</div>
+                            {:else}
+                                <span class="empty"> </span>
+                            {/if}
+                        </div>
+                    {/each}
+                    <!-- session forms -->
+                    {#each sessionDates as date}
+                        <div class="cell">
+                        <!-- check if there is any form data for that date-->
+                        {#if p.scores?.session?.[date]}
+                            <!-- now look at the specific forms -->
+                            {#each sessionForms as sf}
+                                <!-- if there is data for that form make it-->
+                                {#if p.scores?.session?.[date]?.[sf]}
+                                    <div class="pill" style="background-color: {colorFor(sf, p.scores.session[date][sf].total_score)}">{p.scores.session[date][sf].total_score}</div>
+                                {:else}
+                                    <span class="empty"> </span>
+                                {/if}
+                            {/each}
+                        {:else}
+                            <span class="empty"> </span>    
+                        {/if}
+                        </div>
+                    {/each}
+                    <!-- post group forms-->
+                    {#each postgroupForms as pf}
+                        <div class="cell">
+                            {#if p.scores?.postgroup?.[pf]}
+                                <div class="pill" style="background-color: {colorFor(pf, p.scores.postgroup?.[pf]?.total_score)};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.postgroup?.[pf]?.total_score}</div>
+                            {:else}
+                                <span class="empty"> </span>
+                            {/if}
+                        </div>
+                    {/each}
+                {/each}
 
-        <!-- bottom-left empty cell -->
-        <div class="header"></div>
-        <!-- Bottom columns -->
-        <div class="header" style="grid-column: span {screeningForms.length + pregroupForms.length}">Pre-group (On/Before {sessionDates[0]})</div>
-        {#each sessionDates as d}
-            <div class="header">{d}</div>
-        {/each}
-        <div class="header" style="grid-column: span {postgroupForms.length}">Post-group (After {sessionDates[sessionDates.length - 1]})</div>
-    </div>
-</div>
+                <!-- bottom-left empty cell -->
+                <div class="header"></div>
+                <!-- Bottom columns -->
+                <div class="header" style="grid-column: span {screeningForms.length + pregroupForms.length}">Pre-group (On/Before {sessionDates[0]})</div>
+                {#each sessionDates as d}
+                    <div class="header">{d}</div>
+                {/each}
+                <div class="header" style="grid-column: span {postgroupForms.length}">Post-group (After {sessionDates[sessionDates.length - 1]})</div>
+            </div>
+        </div>
+    {:else}
+        <b style="font-size: 20px">Loading...</b>
+    {/if}
+{/if}
 
 
 

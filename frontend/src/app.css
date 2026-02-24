@@ -40,7 +40,7 @@ body{
   min-height:100vh;
 }
 
-.container{max-width:1100px;margin:0 auto;padding:24px}
+.container{max-width:1600px;margin:0 auto;padding:24px}
 
 /* buttons */
 .btn{display:inline-block;padding:12px 16px;border-radius:12px;border:1px solid transparent;background:var(--brand);color:#fff;text-decoration:none;font-weight:700;box-shadow:0 10px 20px var(--ring);transition:transform .08s,background .16s}

@@ -8,7 +8,8 @@ import phq9 from './forms/phq9';
 import epds from './forms/epds';
 import groups from './db/groups';
 import projects from './db/projects';
-import {BlankInput} from "hono/types";
+import patientData from './patientData/groupOverviewRequest';
+import { BlankInput } from "hono/types";
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -519,6 +520,7 @@ app.get('/getAttendance/group/:groupID', async (context) => {
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
+app.route('/patientData', patientData); // for group overview requests
 
 // form routes
 app.route('/phq9', phq9);
