@@ -2,6 +2,33 @@
     // This will be removed and adapted in later development
     // Needed to hardcode example data for the grid
     import { patients, screeningForms, pregroupForms, sessionForms, postgroupForms, sessionDates} from "./mockPatients";
+    import { API_BASE, MAX } from "./constants";
+    import { onMount } from "svelte";
+
+    onMount( async () => {
+        const token = localStorage.getItem("authToken");
+
+        if (!token) {
+        //errorMsg = "Not authenticated.";
+        //loading = false;
+        console.log('Not authenticated'); // will need to do not authenticated logic here
+        }
+
+        try {
+            const therapistId = localStorage.getItem("userId");
+            const FETCH_URL = `${API_BASE}/patientData/therapist/${therapistId}`;
+
+            const groupOverviewRes = await fetch(FETCH_URL, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const groupOverviewData = groupOverviewRes.json()
+            console.log(groupOverviewData);
+            console.log("Done.") // for testing purposes
+
+        } catch (err) {
+            console.error(err);
+        }
+    });
 
     export  const sessionCol: string[] = [];
 
@@ -17,11 +44,6 @@
 
     export const bottomCol = ["Pre-group"].concat(sessionDates, "Post-group")
 
-    // max values for each test, will be moved to a different file later
-    const MAX = {
-        PHQ9: 27,
-        EPDS: 30
-    };
 
     // will go in another file later
     function colorFor(form: string, score: number) {

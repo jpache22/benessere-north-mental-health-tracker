@@ -3,7 +3,7 @@ export const patients = [
         "name": "Patient 1",
         "scores": {
             "screening": {"EPDS": 30},
-            "pregroup": {"PHQ9": 21, "EPDS": 26},
+            "pregroup": {"PHQ9": 21, "EPDS": 26}, // i'm just going to have the forms be the total form scores and everything.
             "February 7": {"PHQ9": 17, "EPDS": 20},
             "February 14": {"EPDS": 21, "PHQ9": 16},
             "February 21": {"EPDS": 17, "PHQ9": 20},
