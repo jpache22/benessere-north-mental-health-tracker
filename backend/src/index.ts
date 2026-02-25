@@ -462,7 +462,7 @@ app.get('/getAttendance/group/:groupID', async (context) => {
 
         const result = await pool.query(
 
-             'SELECT u.username, g.session_date FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
+             'SELECT u.username, g.session_dates FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
             [gID]
         );
 
