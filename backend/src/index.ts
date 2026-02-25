@@ -32,6 +32,7 @@ app.use('*', async (context, next) => { // next is a function that tells hono to
 
 app.post('/login', async (context) => {
 
+    var client;
     let foo = " ";
     try {
         const body = await context.req.json(); // Parse JSON body
@@ -43,10 +44,10 @@ app.post('/login', async (context) => {
         }
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
-        const pool = getPool(connectionString);
+        client = await getPool2(connectionString);
 
         //get saved hashed password from db
-        const result = await pool.query(
+        const result = await client.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
             //[username, password]
             'SELECT * FROM users WHERE username = $1 LIMIT 1',
@@ -93,6 +94,10 @@ app.post('/login', async (context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({success: false, error: err.message}, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 
 
