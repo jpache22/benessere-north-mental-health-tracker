@@ -3,7 +3,7 @@ import {cors} from 'hono/cors';
 import {Bindings} from './types';
 import * as bcrypt from 'bcryptjs';
 import * as jose from 'jose';
-import {getPool} from './db/pool';
+import {getPool, getPool2} from './db/pool';
 import phq9 from './forms/phq9';
 import epds from './forms/epds';
 import groups from './db/groups';
@@ -436,7 +436,7 @@ app.post('/admin/reset-password', async (context) => {
 
         if (!updateResult) return context.json({success: false}, 400);
 
-        const pool = getPool(context.env.HYPERDRIVE.connectionString);
+        const pool = await getPool(context.env.HYPERDRIVE.connectionString);
         const queryResult = await pool.query(updateResult.sql, updateResult.values);
 
         if (queryResult.rowCount === 0) return context.json({success: false}, 404);
@@ -453,7 +453,7 @@ app.post('/admin/reset-password', async (context) => {
 
 //code for attendence view
 app.get('/getAttendance/group/:groupID', async (context) => {
-
+    var client;
     try {
         // Access control
         const authToken = await check_auth_token(context);
@@ -464,9 +464,9 @@ app.get('/getAttendance/group/:groupID', async (context) => {
         const gID = context.req.param('groupID'); // make sure you're reading it correctly
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
-        const pool = getPool(connectionString);
+        client = await getPool2(connectionString);
 
-        const result = await pool.query(
+        const result = await client.query(
             'SELECT u.username, g.session_dates FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
             [gID]
         );
@@ -481,8 +481,11 @@ app.get('/getAttendance/group/:groupID', async (context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({success: false, error: err.message}, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
     }
-
 });
 
 
