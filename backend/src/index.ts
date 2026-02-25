@@ -1,4 +1,4 @@
-import {Context, Hono} from 'hono'
+import {Context, ExecutionContext, Hono} from 'hono'
 import {cors} from 'hono/cors';
 import {Bindings} from './types';
 import * as bcrypt from 'bcryptjs';
@@ -8,7 +8,7 @@ import phq9 from './forms/phq9';
 import epds from './forms/epds';
 import groups from './db/groups';
 import projects from './db/projects';
-import { BlankInput } from "hono/types";
+import {BlankInput} from "hono/types";
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -365,7 +365,6 @@ app.post('/users/self/password', async (context) => {
         if (!authToken) return context.json({success: false}, 401);
 
 
-
         let body = await context.req.json();
         //body.userid = context.req.param('userid');
         body.username = authToken.username;
@@ -397,6 +396,7 @@ app.post('/users/self/password', async (context) => {
     }
 
 });
+
 function generateTempPassword() {
     const digits = new Uint8Array(6);
     crypto.getRandomValues(digits);
@@ -407,23 +407,23 @@ function generateTempPassword() {
 app.post('/admin/reset-password', async (context) => {
     try {
         const authToken = await check_auth_token(context);
-        if (!authToken) return context.json({ success: false }, 401);
-        if (authToken.role !== "admin") return context.json({ success: false }, 403);
+        if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== "admin") return context.json({success: false}, 403);
 
         const body = await context.req.json();
 
         if (!body || typeof body !== "object") {
-            return context.json({ success: false, error: "Invalid request body" }, 400);
+            return context.json({success: false, error: "Invalid request body"}, 400);
         }
 
-        const { id, username, password } = body as {
+        const {id, username, password} = body as {
             id: number | string;
             username: string;
             password?: string;
         };
 
         if (!id || !username) {
-            return context.json({ success: false, error: "id and username are required" }, 400);
+            return context.json({success: false, error: "id and username are required"}, 400);
         }
 
         const nextPassword = password ?? generateTempPassword();
@@ -434,20 +434,20 @@ app.post('/admin/reset-password', async (context) => {
             password: nextPassword
         });
 
-        if (!updateResult) return context.json({ success: false }, 400);
+        if (!updateResult) return context.json({success: false}, 400);
 
         const pool = getPool(context.env.HYPERDRIVE.connectionString);
         const queryResult = await pool.query(updateResult.sql, updateResult.values);
 
-        if (queryResult.rowCount === 0) return context.json({ success: false }, 404);
+        if (queryResult.rowCount === 0) return context.json({success: false}, 404);
 
-        const response: { success: boolean; tempPassword?: string } = { success: true };
+        const response: { success: boolean; tempPassword?: string } = {success: true};
         if (!password) response.tempPassword = nextPassword;
 
         return context.json(response, 200);
     } catch (err) {
         console.error(err);
-        return context.json({ success: false, error: err }, 500);
+        return context.json({success: false, error: err}, 500);
     }
 });
 
@@ -461,8 +461,7 @@ app.get('/getAttendance/group/:groupID', async (context) => {
         const pool = getPool(connectionString);
 
         const result = await pool.query(
-
-             'SELECT u.username, g.session_dates FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
+            'SELECT u.username, g.session_dates FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
             [gID]
         );
 
@@ -481,7 +480,6 @@ app.get('/getAttendance/group/:groupID', async (context) => {
 });
 
 
-
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
@@ -491,8 +489,11 @@ app.route('/phq9', phq9);
 app.route('/epds', epds);
 
 
-export default app
-
+export default app;
+app.onError((err, c) => {
+    console.error(err)
+    return c.text("Internal Server Error", 500)
+})
 
 //delete when done used for local testing
 //check_auth_token("{ 'req': { 'hedaers': ['Authorization': 'bearer foo']} }")
