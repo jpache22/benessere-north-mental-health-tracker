@@ -455,6 +455,11 @@ app.post('/admin/reset-password', async (context) => {
 app.get('/getAttendance/group/:groupID', async (context) => {
 
     try {
+        // Access control
+        const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({success: false}, 401);
+
+
         const gID = context.req.param('groupID'); // make sure you're reading it correctly
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
