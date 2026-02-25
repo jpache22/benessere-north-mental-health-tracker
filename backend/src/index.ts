@@ -458,6 +458,7 @@ app.get('/getAttendance/group/:groupID', async (context) => {
         // Access control
         const authToken = await check_auth_token(context);
         if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== "therapist") return context.json({success: false}, 403);
 
 
         const gID = context.req.param('groupID'); // make sure you're reading it correctly
