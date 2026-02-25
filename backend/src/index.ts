@@ -450,6 +450,38 @@ app.post('/admin/reset-password', async (context) => {
         return context.json({ success: false, error: err }, 500);
     }
 });
+
+//code for attendence view
+app.get('/getAttendance/group/:groupID', async (context) => {
+
+    try {
+        const gID = context.req.param('groupID'); // make sure you're reading it correctly
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        const pool = getPool(connectionString);
+
+        const result = await pool.query(
+
+             'SELECT u.username, g.session_date FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
+            [gID]
+        );
+
+        const payload = {
+            count: result.rows.length,
+            data: result.rows
+        };
+
+
+        return context.json({success: true, payload: payload}, 200);
+    } catch (err: any) {
+        console.error(err);
+        return context.json({success: false, error: err.message}, 500);
+    }
+
+});
+
+
+
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
