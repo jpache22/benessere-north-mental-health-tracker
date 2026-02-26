@@ -1,14 +1,14 @@
-import {Context, Hono} from 'hono'
+import {Context, ExecutionContext, Hono} from 'hono'
 import {cors} from 'hono/cors';
 import {Bindings} from './types';
 import * as bcrypt from 'bcryptjs';
 import * as jose from 'jose';
-import {getPool} from './db/pool';
+import {getConnection} from './db/pool';
 import phq9 from './forms/phq9';
 import epds from './forms/epds';
 import groups from './db/groups';
 import projects from './db/projects';
-import { BlankInput } from "hono/types";
+import {BlankInput} from "hono/types";
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -32,6 +32,7 @@ app.use('*', async (context, next) => { // next is a function that tells hono to
 
 app.post('/login', async (context) => {
 
+    var client;
     let foo = " ";
     try {
         const body = await context.req.json(); // Parse JSON body
@@ -43,10 +44,10 @@ app.post('/login', async (context) => {
         }
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
-        const pool = getPool(connectionString);
+        client = await getConnection(connectionString);
 
         //get saved hashed password from db
-        const result = await pool.query(
+        const result = await client.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
             //[username, password]
             'SELECT * FROM users WHERE username = $1 LIMIT 1',
@@ -93,6 +94,10 @@ app.post('/login', async (context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({success: false, error: err.message}, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 
 
@@ -100,6 +105,7 @@ app.post('/login', async (context) => {
 
 app.post('/register', async (context) => {
 
+    var client;
     try {
         const body = await context.req.json(); // Parse JSON body
 
@@ -110,7 +116,7 @@ app.post('/register', async (context) => {
         }
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
-        const pool = getPool(connectionString);
+        client = await getConnection(connectionString);
 
 
         const salt = await bcrypt.genSalt(10);
@@ -118,7 +124,7 @@ app.post('/register', async (context) => {
         const hashedPassword = await bcrypt.hash(password + ":" + username.toLowerCase(), salt);
 
         //get saved hashed password from db
-        const result = await pool.query(
+        const result = await client.query(
             'INSERT INTO Users (username, password, passwordsalt, email, role) VALUES ($1, $2, $3, $4, $5) RETURNING id',
             [username, hashedPassword, salt, email, "patient"]
         );
@@ -127,9 +133,11 @@ app.post('/register', async (context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({success: false, error: err.message}, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
-
-
 });
 
 
@@ -216,6 +224,7 @@ async function testCheckAuthToken() {
 
 app.get('/adminFetchTable', async (context) => {
 
+    var client;
     try {
         //check to make sure caller as access to this data
         const authToken = await check_auth_token(context);
@@ -230,10 +239,10 @@ app.get('/adminFetchTable', async (context) => {
         }
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
-        const pool = getPool(connectionString);
+        client = await getConnection(connectionString);
 
         //get saved hashed password from db
-        const result = await pool.query(
+        const result = await client.query(
             //'INSERT INTO Users (username, password) VALUES ($1, $2) RETURNING id',
             //[username, password]
             'SELECT id, username, email, role FROM users'
@@ -250,8 +259,11 @@ app.get('/adminFetchTable', async (context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({success: false, error: err.message}, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
-
 });
 
 //update User table~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -319,6 +331,8 @@ async function userUpdateSql(body: unknown) {
 }
 
 app.post('/userUpdate', async (context) => {
+
+    var client;
     try {
         // Access control
         const authToken = await check_auth_token(context);
@@ -340,10 +354,10 @@ app.post('/userUpdate', async (context) => {
         const {sql, values} = updateResult;
 
         // DB Connection
-        const pool = getPool(context.env.HYPERDRIVE.connectionString);
+        client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
         // Run update once
-        const queryResult = await pool.query(sql, values);
+        const queryResult = await client.query(sql, values);
 
         if (queryResult.rowCount === 0) return context.json({success: false}, 404);
 
@@ -352,18 +366,21 @@ app.post('/userUpdate', async (context) => {
     } catch (err) {
         console.error(err);
         return context.json({success: false, error: err}, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
 app.post('/users/self/password', async (context) => {
 
-    let foo = '';
+    var client;
 
     try {
         // Access control
         const authToken = await check_auth_token(context);
         if (!authToken) return context.json({success: false}, 401);
-
 
 
         let body = await context.req.json();
@@ -382,21 +399,26 @@ app.post('/users/self/password', async (context) => {
 
         const {sql, values} = updateResult;
         // DB Connection
-        const pool = getPool(context.env.HYPERDRIVE.connectionString);
+        client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
         // Run update once
-        const queryResult = await pool.query(sql, values);
-        foo = foo + "Line 391";
+        const queryResult = await client.query(sql, values);
+
         if (queryResult.rowCount === 0) return context.json({success: false}, 404);
 
         return context.json({success: true}, 200);
 
     } catch (err) {
         console.error(err);
-        return context.json({success: false, Test: foo, error: err}, 500);
+        return context.json({success: false, error: err}, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
     }
 
 });
+
 function generateTempPassword() {
     const digits = new Uint8Array(6);
     crypto.getRandomValues(digits);
@@ -405,25 +427,26 @@ function generateTempPassword() {
 }
 
 app.post('/admin/reset-password', async (context) => {
+    var client;
     try {
         const authToken = await check_auth_token(context);
-        if (!authToken) return context.json({ success: false }, 401);
-        if (authToken.role !== "admin") return context.json({ success: false }, 403);
+        if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== "admin") return context.json({success: false}, 403);
 
         const body = await context.req.json();
 
         if (!body || typeof body !== "object") {
-            return context.json({ success: false, error: "Invalid request body" }, 400);
+            return context.json({success: false, error: "Invalid request body"}, 400);
         }
 
-        const { id, username, password } = body as {
+        const {id, username, password} = body as {
             id: number | string;
             username: string;
             password?: string;
         };
 
         if (!id || !username) {
-            return context.json({ success: false, error: "id and username are required" }, 400);
+            return context.json({success: false, error: "id and username are required"}, 400);
         }
 
         const nextPassword = password ?? generateTempPassword();
@@ -434,22 +457,65 @@ app.post('/admin/reset-password', async (context) => {
             password: nextPassword
         });
 
-        if (!updateResult) return context.json({ success: false }, 400);
+        if (!updateResult) return context.json({success: false}, 400);
 
-        const pool = getPool(context.env.HYPERDRIVE.connectionString);
-        const queryResult = await pool.query(updateResult.sql, updateResult.values);
+        client = await getConnection(context.env.HYPERDRIVE.connectionString);
+        const queryResult = await client.query(updateResult.sql, updateResult.values);
 
-        if (queryResult.rowCount === 0) return context.json({ success: false }, 404);
+        if (queryResult.rowCount === 0) return context.json({success: false}, 404);
 
-        const response: { success: boolean; tempPassword?: string } = { success: true };
+        const response: { success: boolean; tempPassword?: string } = {success: true};
         if (!password) response.tempPassword = nextPassword;
 
         return context.json(response, 200);
     } catch (err) {
         console.error(err);
-        return context.json({ success: false, error: err }, 500);
+        return context.json({success: false, error: err}, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
+
+//code for attendence view
+app.get('/getAttendance/group/:groupID', async (context) => {
+    var client;
+    try {
+        // Access control
+        const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== "therapist") return context.json({success: false}, 403);
+
+
+        const gID = context.req.param('groupID'); // make sure you're reading it correctly
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        client = await getConnection(connectionString);
+
+        const result = await client.query(
+            'SELECT u.username, g.session_dates FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
+            [gID]
+        );
+
+        const payload = {
+            count: result.rows.length,
+            data: result.rows
+        };
+
+
+        return context.json({success: true, payload: payload}, 200);
+    } catch (err: any) {
+        console.error(err);
+        return context.json({success: false, error: err.message}, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
+    }
+});
+
+
 // routes for groups and projects
 app.route('/groups', groups);
 app.route('/projects', projects);
@@ -459,8 +525,11 @@ app.route('/phq9', phq9);
 app.route('/epds', epds);
 
 
-export default app
-
+export default app;
+app.onError((err, c) => {
+    console.error(err)
+    return c.text("Internal Server Error", 500)
+})
 
 //delete when done used for local testing
 //check_auth_token("{ 'req': { 'hedaers': ['Authorization': 'bearer foo']} }")

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getPool } from '../db/pool';
+import { getConnection } from '../db/pool';
 import { Bindings } from '../types';
 import { GroupRequest } from '../types';
 import { check_auth_token } from '../index';
@@ -13,15 +13,19 @@ groups.get('/', async(context) => {
         return context.json({ success: false, error: "Unauthorized" }, 403);
     }
 
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
     try {
-        const result = await pool.query(
+        const result = await client.query(
             `SELECT group_id, project_id, label, session_dates FROM public."groups"`
         );
         return context.json({ success:true, groups: result.rows }, 200);
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -33,10 +37,10 @@ groups.get('/group_id/:group_id', async(context) => {
     }
 
     const group_id = context.req.param("group_id");
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
-        const result = await pool.query(
+        const result = await client.query(
             `SELECT group_id, project_id, label, session_dates
             FROM public."groups" WHERE group_id = $1`,
             [group_id]
@@ -50,6 +54,10 @@ groups.get('/group_id/:group_id', async(context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -61,10 +69,10 @@ groups.get('/project_id/:project_id', async(context) => {
     }
 
     const project_id = context.req.param("project_id");
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
-        const result = await pool.query(
+        const result = await client.query(
             `SELECT project_id, group_id, label, session_dates
             FROM public."groups" WHERE project_id = $1`,
             [project_id]
@@ -78,6 +86,10 @@ groups.get('/project_id/:project_id', async(context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -89,11 +101,11 @@ groups.post('/', async(context) => {
     }
 
     const data = await context.req.json();
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
         const validData = GroupRequest.parse(data);
-        const result = await pool.query(
+        const result = await client.query(
             `INSERT INTO public."groups" (project_id, label, session_dates)
             VALUES ($1, $2, $3)
             RETURNING group_id;`,
@@ -107,6 +119,10 @@ groups.post('/', async(context) => {
     } catch(err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
