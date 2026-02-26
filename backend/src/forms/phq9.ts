@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getPool } from '../db/pool';
+import { getConnection } from '../db/pool';
 import { Bindings } from '../types';
 import { PHQ9Request } from '../types';
 
@@ -9,25 +9,29 @@ const phq9 = new Hono<{Bindings: Bindings}>();
 
 // Get all the rows from the phq9 table, no matter the user
 phq9.get('/', async(context) => {
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString); // get the pool to connect to supabase database
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString); // get the pool to connect to supabase database
     try {
         // query the database
-        const result = await connectionPool.query(
+        const result = await client.query(
             `SELECT form_submission_id, user_id, completion_date, q1, q2, q3, q4, q5, q6, q7, q8, q9, total_score, depression_severity FROM public."PHQ9"`
         );
         return context.json({success: true, phq9: result.rows});
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.mmessage }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
 // Admin: fetch minimal PHQ-9 data for all users 
 phq9.get('/admin/all', async (context) => {
-  const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+ var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
   try {
-    const result = await connectionPool.query(`
+    const result = await client.query(`
       SELECT 
         form_submission_id,
         user_id,
@@ -41,16 +45,20 @@ phq9.get('/admin/all', async (context) => {
   } catch (err: any) {
     console.error(err);
     return context.json({ success: false, error: err.message }, 500);
+  }finally {
+      if (client) {
+          await client.end();
+      }
   }
 });
 
 // Get the rows from PHQ9 for a specific user ( a user may have multiple rows if they have multiple submissions for this form ) will be ordered by completion date
 phq9.get('/:userid', async(context) => {
     const id = context.req.param('userid'); // id 
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString); // get the pool to connect to supabase database
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString); // get the pool to connect to supabase database
     try {
         // query the database
-        const result = await connectionPool.query(
+        const result = await client.query(
             `SELECT user_id, form_submission_id, completion_date, q1, q2, q3, q4, q5, q6, q7, q8, q9, total_score, depression_severity
             FROM public."PHQ9" WHERE user_id = $1
             ORDER BY completion_date;`,
@@ -66,16 +74,20 @@ phq9.get('/:userid', async(context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
 // only get the total scores along with depression severity for each user id ordered by completion date
 phq9.get('/total_score/:userid', async(context) => {
     const id = context.req.param('userid'); // user id
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
     try {
         // query the database
-        const result = await connectionPool.query(
+        const result = await client.query(
             `SELECT completion_date, total_score, depression_severity
             FROM public."PHQ9" WHERE user_id = $1
             ORDER BY completion_date;`,
@@ -90,6 +102,10 @@ phq9.get('/total_score/:userid', async(context) => {
     } catch( err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -111,7 +127,7 @@ phq9.get('/total_score/:userid', async(context) => {
 phq9.post('/', async(context) => {
     // await the data 
     const data = await context.req.json();
-    const connectionPool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
         // validate data
@@ -121,7 +137,7 @@ phq9.post('/', async(context) => {
         const depression_severity = getDepressionSeverity(total_score);
         const completion_date = new Date().toISOString();
         // query the data base
-        const result = await connectionPool.query(
+        const result = await client.query(
             `INSERT INTO public."PHQ9" (user_id, completion_date, q1, q2, q3, q4, q5, q6, q7, q8, q9, total_score, depression_severity)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING form_submission_id;`,
@@ -147,6 +163,10 @@ phq9.post('/', async(context) => {
     } catch(err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
