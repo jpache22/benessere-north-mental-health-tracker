@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getPool } from '../db/pool';
+import { getConnection } from '../db/pool';
 import { Bindings } from '../types';
 import { ProjectRequest } from '../types';
 import { check_auth_token } from '../index';
@@ -13,15 +13,19 @@ projects.get('/', async(context) => {
         return context.json({ success: false, error: "Unauthorized" }, 403);
     }
 
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
     try {
-        const result = await pool.query(
+        const result = await client.query(
             `SELECT project_id, expiry_date, label, num_of_therapy_sessions, session_forms, screening_forms, pre_group_forms, post_group_forms FROM public."projects"`
         );
         return context.json({ success:true, projects: result.rows });
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message });
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -33,10 +37,10 @@ projects.get('/label/:label', async(context) => {
     }
 
     const label = context.req.param('label');
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
-        const result = await pool.query(
+        const result = await client.query(
             `SELECT label, project_id, expiry_date, num_of_therapy_sessions, session_forms, screening_forms, pre_group_forms, post_group_forms
             FROM public."projects" WHERE label = $1;`,
             [label]
@@ -49,6 +53,10 @@ projects.get('/label/:label', async(context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -60,10 +68,10 @@ projects.get('/project_id/:project_id', async(context) => {
     }
 
     const project_id = context.req.param('project_id');
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
-        const result = await pool.query(
+        const result = await client.query(
             `SELECT project_id, label, expiry_date, num_of_therapy_sessions, session_forms, screening_forms, pre_group_forms, post_group_forms
             FROM public."projects" WHERE project_id = $1;`,
             [project_id]
@@ -76,6 +84,10 @@ projects.get('/project_id/:project_id', async(context) => {
     } catch(err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
@@ -87,11 +99,11 @@ projects.post('/', async(context) => {
     }
 
     const data = await context.req.json();
-    const pool = getPool(context.env.HYPERDRIVE.connectionString);
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
         const validData = ProjectRequest.parse(data);
-        const result = await pool.query(
+        const result = await client.query(
             `INSERT INTO public."projects" (
                 expiry_date,
                 label,
@@ -117,6 +129,10 @@ projects.post('/', async(context) => {
     } catch(err: any) {
         console.error(err);
         return context.json({ success: false, error: err.message }, 500);
+    }finally {
+        if (client) {
+            await client.end();
+        }
     }
 });
 
