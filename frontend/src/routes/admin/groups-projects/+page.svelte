@@ -1,255 +1,388 @@
 <script>
   import { onMount } from 'svelte';
 
-  const GROUPS_KEY = 'admin_groups_draft';
-  const PROJECTS_KEY = 'admin_projects_draft';
+  const API_BASE =
+    import.meta.env.VITE_BACKEND_URL ??
+    'https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev';
 
-  let groups = [];
+  const PROJECTS_URL = `${API_BASE}/projects`;
+  const GROUPS_URL = `${API_BASE}/groups`;
+
+  let loading = true;
+  let errorMsg = '';
+  let successMsg = '';
+
   let projects = [];
+  let groups = [];
 
-  let groupName = '';
-  let groupDescription = '';
-  let groupStatus = 'active';
+  let projectLabel = '';
+  let projectType = 'research';
+  let projectExpiryDate = '';
+  let projectSessions = 10;
+  let sessionFormsInput = 'EPDS, PHQ-9';
+  let screeningFormsInput = '';
+  let preGroupFormsInput = '';
+  let postGroupFormsInput = '';
 
-  let projectName = '';
-  let projectGroupId = '';
-  let projectStartDate = '';
-  let projectEndDate = '';
-  let projectNotes = '';
+  let selectedProjectId = '';
+  let groupLabel = '';
+  let groupSessionDates = [''];
 
-  let groupError = '';
-  let groupSuccess = '';
-  let projectError = '';
-  let projectSuccess = '';
+  $: selectedProject = projects.find((p) => String(p.project_id) === String(selectedProjectId)) ?? null;
+  $: expectedSessionCount = Number(selectedProject?.num_of_therapy_sessions ?? 0);
 
-  onMount(() => {
-    groups = readStorage(GROUPS_KEY);
-    projects = readStorage(PROJECTS_KEY);
+  $: {
+    if (!selectedProject) {
+      if (groupSessionDates.length !== 1 || groupSessionDates[0] !== '') groupSessionDates = [''];
+    } else if (expectedSessionCount > 0 && groupSessionDates.length !== expectedSessionCount) {
+      const nextDates = Array.from({ length: expectedSessionCount }, (_, idx) => groupSessionDates[idx] ?? '');
+      groupSessionDates = nextDates;
+    }
+  }
+
+  onMount(async () => {
+    await refreshData();
   });
 
-  function readStorage(key) {
+  function getToken() {
+    return localStorage.getItem('authToken');
+  }
+
+  function parseFormList(value) {
+    if (!value.trim()) return [];
+    return [...new Set(value.split(',').map((item) => item.trim()).filter(Boolean))];
+  }
+
+  function formatDate(value) {
+    if (!value) return '-';
+    return new Date(`${value}T00:00:00`).toLocaleDateString();
+  }
+
+  function inferProjectType(project) {
+    const screening = Array.isArray(project.screening_forms) ? project.screening_forms : [];
+    const pre = Array.isArray(project.pre_group_forms) ? project.pre_group_forms : [];
+    const post = Array.isArray(project.post_group_forms) ? project.post_group_forms : [];
+    return screening.length || pre.length || post.length ? 'research' : 'clinical';
+  }
+
+  function groupProjectLabel(projectId) {
+    return projects.find((p) => Number(p.project_id) === Number(projectId))?.label ?? `Project ${projectId}`;
+  }
+
+  async function refreshData() {
+    loading = true;
+    errorMsg = '';
+
+    const token = getToken();
+    if (!token) {
+      errorMsg = 'No admin token found. Please log in.';
+      loading = false;
+      return;
+    }
+
     try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      const [projectsRes, groupsRes] = await Promise.all([
+        fetch(PROJECTS_URL, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(GROUPS_URL, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const projectsJson = await projectsRes.json();
+      const groupsJson = await groupsRes.json();
+
+      if (!projectsRes.ok || !projectsJson.success) {
+        throw new Error('Failed to fetch projects.');
+      }
+      if (!groupsRes.ok || !groupsJson.success) {
+        throw new Error('Failed to fetch groups.');
+      }
+
+      projects = projectsJson.projects ?? [];
+      groups = groupsJson.groups ?? [];
+
+      if (!selectedProjectId && projects.length > 0) {
+        selectedProjectId = String(projects[0].project_id);
+      }
     } catch (_) {
-      return [];
+      errorMsg = 'Could not load groups/projects from backend.';
+    } finally {
+      loading = false;
     }
   }
 
-  function writeStorage(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  function createGroup(event) {
+  async function createProject(event) {
     event.preventDefault();
-    groupError = '';
-    groupSuccess = '';
+    errorMsg = '';
+    successMsg = '';
 
-    if (!groupName.trim()) {
-      groupError = 'Group name is required.';
+    const token = getToken();
+    if (!token) {
+      errorMsg = 'No admin token found. Please log in.';
       return;
     }
 
-    const nextGroup = {
-      id: crypto.randomUUID(),
-      name: groupName.trim(),
-      description: groupDescription.trim(),
-      status: groupStatus,
-      createdAt: new Date().toISOString()
+    const expiryDate =
+      projectExpiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const sessionForms = parseFormList(sessionFormsInput);
+    const screeningForms = projectType === 'research' ? parseFormList(screeningFormsInput) : [];
+    const preGroupForms = projectType === 'research' ? parseFormList(preGroupFormsInput) : [];
+    const postGroupForms = projectType === 'research' ? parseFormList(postGroupFormsInput) : [];
+
+    if (!projectLabel.trim()) {
+      errorMsg = 'Project label is required.';
+      return;
+    }
+
+    if (sessionForms.length === 0) {
+      errorMsg = 'At least one session form is required.';
+      return;
+    }
+
+    const payload = {
+      label: projectLabel.trim(),
+      expiry_date: expiryDate,
+      num_of_therapy_sessions: Number(projectSessions),
+      session_forms: sessionForms,
+      screening_forms: screeningForms,
+      pre_group_forms: preGroupForms,
+      post_group_forms: postGroupForms
     };
 
-    groups = [nextGroup, ...groups];
-    writeStorage(GROUPS_KEY, groups);
+    try {
+      const res = await fetch(PROJECTS_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-    groupName = '';
-    groupDescription = '';
-    groupStatus = 'active';
-    groupSuccess = 'Group created locally (frontend only).';
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        errorMsg = data?.error ? String(data.error) : 'Failed to create project.';
+        return;
+      }
+
+      successMsg = `Created project #${data.project_id}.`;
+      projectLabel = '';
+      projectType = 'research';
+      projectExpiryDate = '';
+      projectSessions = 10;
+      sessionFormsInput = 'EPDS, PHQ-9';
+      screeningFormsInput = '';
+      preGroupFormsInput = '';
+      postGroupFormsInput = '';
+
+      await refreshData();
+    } catch (_) {
+      errorMsg = 'Connection error while creating project.';
+    }
   }
 
-  function createProject(event) {
+  async function createGroup(event) {
     event.preventDefault();
-    projectError = '';
-    projectSuccess = '';
+    errorMsg = '';
+    successMsg = '';
 
-    if (!projectName.trim()) {
-      projectError = 'Project name is required.';
+    const token = getToken();
+    if (!token) {
+      errorMsg = 'No admin token found. Please log in.';
       return;
     }
 
-    if (!projectGroupId) {
-      projectError = 'Please select a group.';
+    if (!selectedProjectId) {
+      errorMsg = 'Select a project before creating a group.';
       return;
     }
 
-    const selectedGroup = groups.find((g) => g.id === projectGroupId);
-    if (!selectedGroup) {
-      projectError = 'Selected group is invalid.';
+    if (!groupLabel.trim()) {
+      errorMsg = 'Group label is required.';
       return;
     }
 
-    const nextProject = {
-      id: crypto.randomUUID(),
-      name: projectName.trim(),
-      groupId: selectedGroup.id,
-      groupName: selectedGroup.name,
-      startDate: projectStartDate || null,
-      endDate: projectEndDate || null,
-      notes: projectNotes.trim(),
-      createdAt: new Date().toISOString()
+    const trimmedDates = groupSessionDates.map((d) => d.trim()).filter(Boolean);
+    if (expectedSessionCount > 0 && trimmedDates.length !== expectedSessionCount) {
+      errorMsg = `This project requires exactly ${expectedSessionCount} session date(s).`;
+      return;
+    }
+
+    const payload = {
+      project_id: Number(selectedProjectId),
+      label: groupLabel.trim(),
+      session_dates: trimmedDates
     };
 
-    projects = [nextProject, ...projects];
-    writeStorage(PROJECTS_KEY, projects);
+    try {
+      const res = await fetch(GROUPS_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-    projectName = '';
-    projectGroupId = '';
-    projectStartDate = '';
-    projectEndDate = '';
-    projectNotes = '';
-    projectSuccess = 'Project created locally (frontend only).';
-  }
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        errorMsg = data?.error ? String(data.error) : 'Failed to create group.';
+        return;
+      }
 
-  function deleteGroup(groupId) {
-    const linkedProject = projects.find((p) => p.groupId === groupId);
-    if (linkedProject) {
-      groupError = 'Cannot delete a group that is linked to a project.';
-      return;
+      successMsg = `Created group #${data.group_id}.`;
+      groupLabel = '';
+      groupSessionDates = Array.from({ length: expectedSessionCount || 1 }, () => '');
+
+      await refreshData();
+    } catch (_) {
+      errorMsg = 'Connection error while creating group.';
     }
-
-    groups = groups.filter((g) => g.id !== groupId);
-    writeStorage(GROUPS_KEY, groups);
-  }
-
-  function deleteProject(projectId) {
-    projects = projects.filter((p) => p.id !== projectId);
-    writeStorage(PROJECTS_KEY, projects);
   }
 </script>
 
 <section class="page-head">
   <h1>Groups & Projects</h1>
-  <p class="muted">Frontend-only setup for now. No backend integration yet.</p>
+  <p class="muted">Admin backend integration for sponsor-defined project and group setup.</p>
 </section>
+
+{#if successMsg}
+  <div class="alert success">{successMsg}</div>
+{/if}
+{#if errorMsg}
+  <div class="alert error">{errorMsg}</div>
+{/if}
 
 <section class="grid">
   <div class="card form-card">
-    <h2>Create Group</h2>
-
-    {#if groupSuccess}
-      <div class="alert success">{groupSuccess}</div>
-    {/if}
-    {#if groupError}
-      <div class="alert error">{groupError}</div>
-    {/if}
-
-    <form on:submit={createGroup}>
-      <label class="field">
-        <span>Group Name</span>
-        <input class="input" bind:value={groupName} placeholder="Group A" required />
-      </label>
-
-      <label class="field">
-        <span>Description</span>
-        <textarea class="input" bind:value={groupDescription} rows="3" placeholder="Optional notes"></textarea>
-      </label>
-
-      <label class="field">
-        <span>Status</span>
-        <select class="input" bind:value={groupStatus}>
-          <option value="active">Active</option>
-          <option value="archived">Archived</option>
-        </select>
-      </label>
-
-      <button class="btn" type="submit">Create Group</button>
-    </form>
-  </div>
-
-  <div class="card form-card">
     <h2>Create Project</h2>
-
-    {#if projectSuccess}
-      <div class="alert success">{projectSuccess}</div>
-    {/if}
-    {#if projectError}
-      <div class="alert error">{projectError}</div>
-    {/if}
-
     <form on:submit={createProject}>
       <label class="field">
-        <span>Project Name</span>
-        <input class="input" bind:value={projectName} placeholder="Mood Tracking Q2" required />
-      </label>
-
-      <label class="field">
-        <span>Group</span>
-        <select class="input" bind:value={projectGroupId} required disabled={groups.length === 0}>
-          <option value="">Select a group</option>
-          {#each groups as group}
-            <option value={group.id}>{group.name}</option>
-          {/each}
-        </select>
+        <span>Project Label</span>
+        <input class="input" bind:value={projectLabel} placeholder="Perinatal Mental Health Research" required />
       </label>
 
       <div class="row">
         <label class="field">
-          <span>Start Date</span>
-          <input class="input" type="date" bind:value={projectStartDate} />
+          <span>Project Type</span>
+          <select class="input" bind:value={projectType}>
+            <option value="research">Research</option>
+            <option value="clinical">Clinical</option>
+          </select>
         </label>
 
         <label class="field">
-          <span>End Date</span>
-          <input class="input" type="date" bind:value={projectEndDate} />
+          <span>Therapy Sessions</span>
+          <input class="input" type="number" min="1" bind:value={projectSessions} required />
         </label>
       </div>
 
       <label class="field">
-        <span>Notes</span>
-        <textarea class="input" bind:value={projectNotes} rows="3" placeholder="Optional notes"></textarea>
+        <span>Expiry Date (defaults to +1 year)</span>
+        <input class="input" type="date" bind:value={projectExpiryDate} />
       </label>
 
-      <button class="btn" type="submit" disabled={groups.length === 0}>Create Project</button>
-    </form>
+      <label class="field">
+        <span>Session Forms (comma-separated)</span>
+        <input class="input" bind:value={sessionFormsInput} placeholder="EPDS, PHQ-9" required />
+      </label>
 
-    {#if groups.length === 0}
-      <p class="muted helper">Create at least one group before adding a project.</p>
-    {/if}
+      {#if projectType === 'research'}
+        <label class="field">
+          <span>Screening Forms (comma-separated)</span>
+          <input class="input" bind:value={screeningFormsInput} placeholder="PHQ-9" />
+        </label>
+
+        <label class="field">
+          <span>Pre-group Forms (comma-separated)</span>
+          <input class="input" bind:value={preGroupFormsInput} placeholder="EPDS, GAD-7" />
+        </label>
+
+        <label class="field">
+          <span>Post-group Forms (comma-separated)</span>
+          <input class="input" bind:value={postGroupFormsInput} placeholder="Q-LES" />
+        </label>
+      {/if}
+
+      <button class="btn" type="submit">Create Project</button>
+    </form>
+  </div>
+
+  <div class="card form-card">
+    <h2>Create Group</h2>
+    <form on:submit={createGroup}>
+      <label class="field">
+        <span>Project</span>
+        <select class="input" bind:value={selectedProjectId} required disabled={projects.length === 0}>
+          <option value="">Select project</option>
+          {#each projects as project}
+            <option value={project.project_id}>{project.label} ({project.num_of_therapy_sessions} sessions)</option>
+          {/each}
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Group Label</span>
+        <input class="input" bind:value={groupLabel} placeholder="Group 1" required />
+      </label>
+
+      {#if selectedProject}
+        <div class="session-date-grid">
+          {#each groupSessionDates as _, idx}
+            <label class="field">
+              <span>Session {idx + 1} Date</span>
+              <input class="input" type="date" bind:value={groupSessionDates[idx]} required />
+            </label>
+          {/each}
+        </div>
+      {/if}
+
+      <button class="btn" type="submit" disabled={projects.length === 0}>Create Group</button>
+    </form>
   </div>
 </section>
 
 <section class="card table-card">
   <header class="table-head">
-    <h2>Groups</h2>
-    <span class="muted">{groups.length} total</span>
+    <h2>Projects</h2>
+    <span class="muted">{projects.length} total</span>
   </header>
 
-  {#if groups.length === 0}
-    <div class="empty">No groups created yet.</div>
+  {#if loading}
+    <div class="empty">Loading projects...</div>
+  {:else if projects.length === 0}
+    <div class="empty">No projects created yet.</div>
   {:else}
     <div class="table-wrap">
       <table class="table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th class="right">Actions</th>
+            <th>ID</th>
+            <th>Label</th>
+            <th>Type</th>
+            <th>Expiry</th>
+            <th>Sessions</th>
+            <th>Session Forms</th>
+            <th>Screening</th>
+            <th>Pre</th>
+            <th>Post</th>
           </tr>
         </thead>
         <tbody>
-          {#each groups as group}
+          {#each projects as project}
             <tr>
-              <td>{group.name}</td>
-              <td>{group.description || '-'}</td>
-              <td class="caps">{group.status}</td>
-              <td>{new Date(group.createdAt).toLocaleDateString()}</td>
-              <td class="right">
-                <button class="btn small outline" on:click={() => deleteGroup(group.id)}>Delete</button>
-              </td>
+              <td>{project.project_id}</td>
+              <td>{project.label}</td>
+              <td class="caps">{inferProjectType(project)}</td>
+              <td>{formatDate(project.expiry_date?.slice?.(0, 10) ?? project.expiry_date)}</td>
+              <td>{project.num_of_therapy_sessions}</td>
+              <td>{(project.session_forms ?? []).join(', ') || '-'}</td>
+              <td>{(project.screening_forms ?? []).join(', ') || '-'}</td>
+              <td>{(project.pre_group_forms ?? []).join(', ') || '-'}</td>
+              <td>{(project.post_group_forms ?? []).join(', ') || '-'}</td>
             </tr>
           {/each}
         </tbody>
@@ -260,36 +393,37 @@
 
 <section class="card table-card">
   <header class="table-head">
-    <h2>Projects</h2>
-    <span class="muted">{projects.length} total</span>
+    <h2>Groups</h2>
+    <span class="muted">{groups.length} total</span>
   </header>
 
-  {#if projects.length === 0}
-    <div class="empty">No projects created yet.</div>
+  {#if loading}
+    <div class="empty">Loading groups...</div>
+  {:else if groups.length === 0}
+    <div class="empty">No groups created yet.</div>
   {:else}
     <div class="table-wrap">
       <table class="table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Group</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Notes</th>
-            <th class="right">Actions</th>
+            <th>ID</th>
+            <th>Project</th>
+            <th>Label</th>
+            <th>Session Count</th>
+            <th>First Session</th>
+            <th>Last Session</th>
           </tr>
         </thead>
         <tbody>
-          {#each projects as project}
+          {#each groups as group}
+            {@const sortedDates = [...(group.session_dates ?? [])].sort()}
             <tr>
-              <td>{project.name}</td>
-              <td>{project.groupName}</td>
-              <td>{project.startDate || '-'}</td>
-              <td>{project.endDate || '-'}</td>
-              <td>{project.notes || '-'}</td>
-              <td class="right">
-                <button class="btn small outline" on:click={() => deleteProject(project.id)}>Delete</button>
-              </td>
+              <td>{group.group_id}</td>
+              <td>{groupProjectLabel(group.project_id)}</td>
+              <td>{group.label}</td>
+              <td>{sortedDates.length}</td>
+              <td>{sortedDates.length ? formatDate(String(sortedDates[0]).slice(0, 10)) : '-'}</td>
+              <td>{sortedDates.length ? formatDate(String(sortedDates[sortedDates.length - 1]).slice(0, 10)) : '-'}</td>
             </tr>
           {/each}
         </tbody>
@@ -348,18 +482,16 @@
     color: var(--muted);
   }
 
-  textarea.input {
-    resize: vertical;
-  }
-
   .row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .helper {
-    margin: 10px 2px 0;
+  .session-date-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .table-card {
@@ -395,17 +527,13 @@
     text-transform: capitalize;
   }
 
-  .right {
-    text-align: right;
-  }
-
   .empty {
     padding: 20px;
     color: var(--muted);
   }
 
   .alert {
-    margin-top: 10px;
+    margin: 0 0 12px;
     padding: 10px 12px;
     border-radius: 10px;
   }

@@ -6,6 +6,11 @@ import { check_auth_token } from '../index';
 
 const projects = new Hono<{Bindings: Bindings}>();
 
+function normalizeFormList(list?: string[]) {
+    if (!list) return [];
+    return [...new Set(list.map((item) => item.trim()).filter(Boolean))];
+}
+
 // GET all projects
 projects.get('/', async(context) => {
     const auth = await check_auth_token(context);
@@ -102,7 +107,21 @@ projects.post('/', async(context) => {
     var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
-        const validData = ProjectRequest.parse(data);
+        const parsed = ProjectRequest.safeParse(data);
+        if (!parsed.success) {
+            return context.json({ success: false, error: parsed.error.issues }, 400);
+        }
+
+        const validData = parsed.data;
+        const sessionForms = normalizeFormList(validData.session_forms);
+        const screeningForms = normalizeFormList(validData.screening_forms);
+        const preGroupForms = normalizeFormList(validData.pre_group_forms);
+        const postGroupForms = normalizeFormList(validData.post_group_forms);
+
+        if (sessionForms.length === 0) {
+            return context.json({ success: false, error: "session_forms must contain at least one form." }, 400);
+        }
+
         const result = await client.query(
             `INSERT INTO public."projects" (
                 expiry_date,
@@ -118,16 +137,19 @@ projects.post('/', async(context) => {
                 validData.expiry_date,
                 validData.label,
                 validData.num_of_therapy_sessions,
-                validData.session_forms,
-                validData.post_group_forms,
-                validData.screening_forms ?? null,
-                validData.pre_group_forms ?? null
+                sessionForms,
+                postGroupForms,
+                screeningForms,
+                preGroupForms
             ]
         );
 
         return context.json({ success: true, project_id: result.rows[0].project_id });
     } catch(err: any) {
         console.error(err);
+        if (err?.code === '23505') {
+            return context.json({ success: false, error: 'Project label already exists.' }, 409);
+        }
         return context.json({ success: false, error: err.message }, 500);
     }finally {
         if (client) {

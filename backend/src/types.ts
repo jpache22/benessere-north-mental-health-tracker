@@ -39,16 +39,16 @@ export const EPDSRequest = z.object({
 
 export const ProjectRequest = z.object({
     expiry_date: z.coerce.date(),
-    label: z.string(),
-    num_of_therapy_sessions: z.number(),
-    session_forms: z.array(z.string()),
-    post_group_forms: z.array(z.string()),
-    screening_forms: z.optional(z.array(z.string())),
-    pre_group_forms: z.optional(z.array(z.string()))
+    label: z.string().trim().min(1),
+    num_of_therapy_sessions: z.coerce.number().int().positive(),
+    session_forms: z.array(z.string().trim().min(1)),
+    post_group_forms: z.array(z.string().trim().min(1)).optional(),
+    screening_forms: z.array(z.string().trim().min(1)).optional(),
+    pre_group_forms: z.array(z.string().trim().min(1)).optional()
 });
 
 export const GroupRequest = z.object({
-    project_id: z.number(),
-    label: z.string(),
-    session_dates: z.array(z.coerce.date())
+    project_id: z.coerce.number().int().positive(),
+    label: z.string().trim().min(1),
+    session_dates: z.array(z.coerce.date()).min(1)
 });

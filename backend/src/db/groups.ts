@@ -104,7 +104,42 @@ groups.post('/', async(context) => {
     var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
     try {
-        const validData = GroupRequest.parse(data);
+        const parsed = GroupRequest.safeParse(data);
+        if (!parsed.success) {
+            return context.json({ success: false, error: parsed.error.issues }, 400);
+        }
+
+        const validData = parsed.data;
+
+        const projectResult = await client.query(
+            `SELECT project_id, num_of_therapy_sessions FROM public."projects" WHERE project_id = $1`,
+            [validData.project_id]
+        );
+
+        if (projectResult.rows.length === 0) {
+            return context.json({ success: false, error: "Project not found." }, 404);
+        }
+
+        const expectedSessions = Number(projectResult.rows[0].num_of_therapy_sessions);
+        if (validData.session_dates.length !== expectedSessions) {
+            return context.json(
+                {
+                    success: false,
+                    error: `session_dates must contain exactly ${expectedSessions} date(s) for this project.`
+                },
+                400
+            );
+        }
+
+        const existingGroup = await client.query(
+            `SELECT 1 FROM public."groups" WHERE project_id = $1 AND label = $2 LIMIT 1`,
+            [validData.project_id, validData.label]
+        );
+
+        if (existingGroup.rows.length > 0) {
+            return context.json({ success: false, error: "Group label already exists in this project." }, 409);
+        }
+
         const result = await client.query(
             `INSERT INTO public."groups" (project_id, label, session_dates)
             VALUES ($1, $2, $3)
