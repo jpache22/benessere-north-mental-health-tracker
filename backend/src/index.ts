@@ -516,6 +516,95 @@ app.get('/getAttendance/group/:groupID', async (context) => {
     }
 });
 
+// Save or update attendance for a single participant/session
+app.post('/attendance', async (context) => {
+    var client;
+    try {
+        const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== 'therapist' && authToken.role !== 'admin') {
+            return context.json({success: false, error: 'Unauthorized'}, 403);
+        }
+
+        const body = await context.req.json();
+        const {participant_id, session_id, group_id, status} = body;
+
+        if (!participant_id || session_id === undefined || session_id === null || !group_id || !status) {
+            return context.json({success: false, error: 'Missing required fields: participant_id, session_id, group_id, status'}, 400);
+        }
+
+        const validStatuses = ['present', 'late', 'absent'];
+        if (!validStatuses.includes(status)) {
+            return context.json({success: false, error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`}, 400);
+        }
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        client = await getConnection(connectionString);
+
+        const result = await client.query(
+            `INSERT INTO attendance (participant_id, session_id, group_id, status, updated_by, updated_at, created_at)
+             VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+             ON CONFLICT (participant_id, session_id, group_id)
+             DO UPDATE SET status = $4, updated_by = $5, updated_at = NOW()
+             RETURNING *`,
+            [participant_id, session_id, group_id, status, authToken.userId]
+        );
+
+        return context.json({success: true, data: result.rows[0]}, 200);
+    } catch (err: any) {
+        console.error(err);
+        return context.json({success: false, error: err.message}, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
+    }
+});
+
+// Get all attendance records for a group (with statuses)
+app.get('/attendance/group/:groupID', async (context) => {
+    var client;
+    try {
+        const authToken = await check_auth_token(context);
+        if (!authToken) return context.json({success: false}, 401);
+        if (authToken.role !== 'therapist' && authToken.role !== 'admin') {
+            return context.json({success: false, error: 'Unauthorized'}, 403);
+        }
+
+        const groupID = context.req.param('groupID');
+
+        const connectionString = context.env.HYPERDRIVE.connectionString;
+        client = await getConnection(connectionString);
+
+        const result = await client.query(
+            `SELECT a.participant_id, a.session_id, a.group_id, a.status, a.updated_at, u.username
+             FROM attendance a
+             JOIN users u ON u.id = a.participant_id
+             WHERE a.group_id = $1
+             ORDER BY u.username, a.session_id`,
+            [groupID]
+        );
+
+        return context.json({
+            success: true,
+            payload: {
+                count: result.rows.length,
+                data: result.rows
+            }
+        }, 200);
+    } catch (err: any) {
+        console.error(err);
+        return context.json({success: false, error: err.message}, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
+    }
+});
+
+
+
+
 
 // routes for groups and projects
 app.route('/groups', groups);

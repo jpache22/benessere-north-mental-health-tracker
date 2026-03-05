@@ -14,58 +14,42 @@
 	let error = null;
 	let saving = false;
 	
-	// Get auth token from localStorage
+	// Get auth token and user info from localStorage
 	function getToken() {
 		return localStorage.getItem('token');
 	}
 	
-	onMount(async () => {
-		await loadGroups();
-	});
-	
-	// Load available groups
-	async function loadGroups() {
-		try {
-			loading = true;
-			error = null;
-			
-			const response = await fetch(`${BACKEND_URL}/groups`, {
-				headers: {
-					'Authorization': `Bearer ${getToken()}`
-				}
-			});
-			
-			if (!response.ok) throw new Error('Failed to fetch groups');
-			
-			const data = await response.json();
-			
-			if (data.success) {
-				groups = data.payload.data || [];
-			}
-			
-			// Select first group
-			if (groups.length > 0) {
-				selectedGroup = groups[0].group_id;
-				await loadGroupAttendance();
-			}
-			
-		} catch (err) {
-			error = `Failed to load groups: ${err.message}`;
-			console.error('Error:', err);
-		} finally {
-			loading = false;
-		}
+	function getUserId() {
+		return localStorage.getItem('userId');
 	}
 	
-	// Load attendance for selected group
-	async function loadGroupAttendance() {
-		if (!selectedGroup) return;
-		
+	function getUserRole() {
+		return localStorage.getItem('role');
+	}
+	
+	onMount(async () => {
+		await loadGroupData();
+	});
+	
+	// Load all group data from the patientData endpoint
+	async function loadGroupData() {
 		try {
 			loading = true;
 			error = null;
 			
-			const response = await fetch(`${BACKEND_URL}/getAttendance/group/${selectedGroup}`, {
+			const role = getUserRole();
+			const userId = getUserId();
+			let url;
+			
+			// Use the appropriate endpoint based on role
+			if (role === 'admin') {
+				url = `${BACKEND_URL}/patientData/admin`;
+			} else {
+				// therapist endpoint requires therapist_id
+				url = `${BACKEND_URL}/patientData/therapist/${userId}`;
+			}
+			
+			const response = await fetch(url, {
 				headers: {
 					'Authorization': `Bearer ${getToken()}`
 				}
@@ -76,54 +60,70 @@
 			const data = await response.json();
 			
 			if (!data.success) {
-				throw new Error(data.error || 'Failed to load attendance');
+				throw new Error(data.error || 'Failed to load group data');
 			}
 			
-			parseAttendanceData(data.payload);
+			// patientData response: { success, patientData: { groups: [...] } }
+			const allGroups = data.patientData?.groups || [];
+			
+			groups = allGroups.map(g => ({
+				group_id: g.group_id,
+				label: g.grouplabel,
+				session_dates: g.session_dates || [],
+				patients: g.patients || [],
+				project_forms: g.project_forms || {}
+			}));
+			
+			// Auto-select first group and load its attendance view
+			if (groups.length > 0) {
+				selectedGroup = groups[0].group_id;
+				buildAttendanceView();
+				await loadExistingAttendance();
+			}
 			
 		} catch (err) {
-			error = `Failed to load attendance: ${err.message}`;
+			error = `Failed to load groups: ${err.message}`;
 			console.error('Error:', err);
 		} finally {
 			loading = false;
 		}
 	}
 	
-	// Parse backend response
-	function parseAttendanceData(payload) {
-		if (!payload || !payload.data || payload.data.length === 0) {
+	// Build participants and sessions arrays from the selected group
+	function buildAttendanceView() {
+		const group = groups.find(g => g.group_id === selectedGroup);
+		if (!group) {
 			participants = [];
 			sessions = [];
 			attendance = {};
 			return;
 		}
 		
-		const data = payload.data;
-		
-		// Build participants list from usernames
-		participants = data.map((row, index) => ({
-			id: index + 1,
-			name: row.username
+		// Build participants from the group's patients array
+		participants = group.patients.map(p => ({
+			id: p.patient_id,
+			name: p.username
 		}));
 		
-		// Parse session_dates (assuming it's a JSON array string)
-		if (data[0].session_dates) {
-			let dates = [];
-			try {
-				dates = typeof data[0].session_dates === 'string'
-					? JSON.parse(data[0].session_dates)
-					: data[0].session_dates;
-			} catch (e) {
-				// If not JSON, try splitting by comma
-				dates = String(data[0].session_dates).split(',').map(d => d.trim());
+		// Build sessions from group's session_dates
+		let dates = [];
+		if (group.session_dates) {
+			if (typeof group.session_dates === 'string') {
+				try {
+					dates = JSON.parse(group.session_dates);
+				} catch (e) {
+					dates = group.session_dates.split(',').map(d => d.trim());
+				}
+			} else if (Array.isArray(group.session_dates)) {
+				dates = group.session_dates;
 			}
-			
-			sessions = dates.map((date, index) => ({
-				id: index + 1,
-				label: `Section ${index + 1}`,
-				date: date
-			}));
 		}
+		
+		sessions = dates.map((date, index) => ({
+			id: index + 1,
+			label: `Session ${index + 1}`,
+			date: date
+		}));
 		
 		// Initialize attendance (all null = white cells)
 		attendance = {};
@@ -135,10 +135,51 @@
 		});
 	}
 	
-	// Save attendance
-	async function setAttendance(participantId, sessionId, status) {
+	// Load any existing attendance records for this group
+	async function loadExistingAttendance() {
+		if (!selectedGroup) return;
 		
+		try {
+			const response = await fetch(`${BACKEND_URL}/attendance/group/${selectedGroup}`, {
+				headers: {
+					'Authorization': `Bearer ${getToken()}`
+				}
+			});
+			
+			if (!response.ok) {
+				console.warn('Could not load existing attendance records:', response.status);
+				return;
+			}
+			
+			const data = await response.json();
+			
+			if (data.success && data.payload?.data) {
+				// Merge saved attendance statuses into the grid
+				for (const record of data.payload.data) {
+					const pId = record.participant_id;
+					const sId = record.session_id;
+					if (attendance[pId] && sId in attendance[pId]) {
+						attendance = {
+							...attendance,
+							[pId]: {
+								...attendance[pId],
+								[sId]: record.status
+							}
+						};
+					}
+				}
+			}
+		} catch (err) {
+			// Non-fatal — we just won't have pre-filled statuses
+			console.warn('Could not load existing attendance:', err.message);
+		}
+	}
+	
+	// Save attendance status for a cell
+	async function setAttendance(participantId, sessionId, status) {
 		const previousStatus = attendance[participantId]?.[sessionId];
+		
+		// Optimistic update (Svelte reactivity via object spread)
 		attendance = {
 			...attendance,
 			[participantId]: {
@@ -187,7 +228,8 @@
 	
 	async function handleGroupChange() {
 		if (selectedGroup) {
-			await loadGroupAttendance();
+			buildAttendanceView();
+			await loadExistingAttendance();
 		}
 	}
 	

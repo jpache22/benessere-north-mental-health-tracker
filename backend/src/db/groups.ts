@@ -9,7 +9,7 @@ const groups = new Hono<{Bindings: Bindings}>();
 // GET all groups (admin only)
 groups.get('/', async(context) => {
     const auth = await check_auth_token(context);
-    if (!auth || auth.role !== "admin"&& auth.role !== "therapist") {
+    if (!auth || auth.role !== "admin") {
         return context.json({ success: false, error: "Unauthorized" }, 403);
     }
 
