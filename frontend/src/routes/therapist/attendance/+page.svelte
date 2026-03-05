@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	
 	// Backend URL - update if needed
-	const BACKEND_URL = 'https://benessere-north-mental-health-tracker.jmaser22.workers.dev';
+	const BACKEND_URL = 'https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev';
 	
 	// State
 	let selectedGroup = '';
