@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	
-	// Backend URL - update if needed
+	// Backend URL 
 	const BACKEND_URL = 'https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev';
 	
 	// State
@@ -39,7 +39,7 @@
 			
 			const data = await response.json();
 			
-			if (data.success && data.payload) {
+			if (data.success) {
 				groups = data.payload.data || [];
 			}
 			
@@ -137,7 +137,7 @@
 	
 	// Save attendance
 	async function setAttendance(participantId, sessionId, status) {
-		// Optimistic UI update
+		
 		const previousStatus = attendance[participantId]?.[sessionId];
 		attendance = {
 			...attendance,
