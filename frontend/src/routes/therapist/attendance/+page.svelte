@@ -13,7 +13,7 @@
 	let saving = false;
 	
 	function getToken() {
-		return localStorage.getItem('token');
+		return localStorage.getItem('authToken') || localStorage.getItem('token');
 	}
 	
 	function getUserId() {
@@ -21,7 +21,7 @@
 	}
 	
 	function getUserRole() {
-		return localStorage.getItem('role');
+		return localStorage.getItem('userRole') || localStorage.getItem('role');
 	}
 	
 	onMount(async () => {

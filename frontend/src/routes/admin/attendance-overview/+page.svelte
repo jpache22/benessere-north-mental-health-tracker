@@ -1,5 +1,5 @@
 <script>
-  import TherapistAttendanceOverviewPage from '../../therapist/attendance/+page.svelte';
+  import AdminAttendancePage from '../attendance/+page.svelte';
 </script>
 
-<TherapistAttendanceOverviewPage />
+<AdminAttendancePage />
