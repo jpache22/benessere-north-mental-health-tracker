@@ -1,5 +1,4 @@
 <script>
-<script>
 	import { onMount } from 'svelte';
 	
 	// Backend URL 
@@ -14,6 +13,9 @@
 	let loading = true;
 	let error = null;
 	let saving = false;
+	
+	// Reactive lookup — Svelte tracks this so UI re-renders when attendance changes
+	$: attendanceLookup = attendance;
 	
 	// Get auth token and user info from localStorage
 	function getToken() {
@@ -42,11 +44,9 @@
 			const userId = getUserId();
 			let url;
 			
-			// Use the appropriate endpoint based on role
 			if (role === 'admin') {
 				url = `${BACKEND_URL}/patientData/admin`;
 			} else {
-				// therapist endpoint requires therapist_id
 				url = `${BACKEND_URL}/patientData/therapist/${userId}`;
 			}
 			
@@ -64,7 +64,6 @@
 				throw new Error(data.error || 'Failed to load group data');
 			}
 			
-			// patientData response: { success, patientData: { groups: [...] } }
 			const allGroups = data.patientData?.groups || [];
 			
 			groups = allGroups.map(g => ({
@@ -75,10 +74,15 @@
 				project_forms: g.project_forms || {}
 			}));
 			
-			// Auto-select first group and load its attendance view
 			if (groups.length > 0) {
 				selectedGroup = groups[0].group_id;
 				buildAttendanceView();
+				
+				// Fallback: if patientData returned no patients, pull from old endpoint
+				if (participants.length === 0) {
+					await loadParticipantsFallback();
+				}
+				
 				await loadExistingAttendance();
 			}
 			
@@ -100,25 +104,12 @@
 			return;
 		}
 		
-		// Build participants from the group's patients array
 		participants = group.patients.map(p => ({
 			id: p.patient_id,
 			name: p.username
 		}));
 		
-		// Build sessions from group's session_dates
-		let dates = [];
-		if (group.session_dates) {
-			if (typeof group.session_dates === 'string') {
-				try {
-					dates = JSON.parse(group.session_dates);
-				} catch (e) {
-					dates = group.session_dates.split(',').map(d => d.trim());
-				}
-			} else if (Array.isArray(group.session_dates)) {
-				dates = group.session_dates;
-			}
-		}
+		let dates = parseDates(group.session_dates);
 		
 		sessions = dates.map((date, index) => ({
 			id: index + 1,
@@ -126,7 +117,6 @@
 			date: date
 		}));
 		
-		// Initialize attendance (all null = white cells)
 		attendance = {};
 		participants.forEach(p => {
 			attendance[p.id] = {};
@@ -136,7 +126,70 @@
 		});
 	}
 	
-	// Load any existing attendance records for this group
+	function parseDates(raw) {
+		if (!raw) return [];
+		if (Array.isArray(raw)) return raw;
+		if (typeof raw === 'string') {
+			try {
+				return JSON.parse(raw);
+			} catch (e) {
+				return raw.split(',').map(d => d.trim());
+			}
+		}
+		return [];
+	}
+	
+	// Fallback: get participants when patientData has no patients (no form submissions yet)
+	async function loadParticipantsFallback() {
+		if (!selectedGroup) return;
+		
+		try {
+			const response = await fetch(`${BACKEND_URL}/getAttendance/group/${selectedGroup}`, {
+				headers: {
+					'Authorization': `Bearer ${getToken()}`
+				}
+			});
+			
+			if (!response.ok) return;
+			
+			const data = await response.json();
+			
+			if (data.success && data.payload?.data?.length > 0) {
+				const rows = data.payload.data;
+				
+				const seen = new Set();
+				participants = [];
+				for (const row of rows) {
+					const id = row.user_id || row.username;
+					if (!seen.has(id)) {
+						seen.add(id);
+						participants.push({ id, name: row.username });
+					}
+				}
+				
+				if (sessions.length === 0 && rows[0].session_dates) {
+					let dates = parseDates(rows[0].session_dates);
+					sessions = dates.map((date, index) => ({
+						id: index + 1,
+						label: `Session ${index + 1}`,
+						date: date
+					}));
+				}
+				
+				attendance = {};
+				participants.forEach(p => {
+					attendance[p.id] = {};
+					sessions.forEach(s => {
+						attendance[p.id][s.id] = null;
+					});
+				});
+			}
+		} catch (err) {
+			console.warn('Fallback participant load failed:', err.message);
+		}
+	}
+	
+	// Load saved attendance records and fill the grid colors
 	async function loadExistingAttendance() {
 		if (!selectedGroup) return;
 		
@@ -155,32 +208,31 @@
 			const data = await response.json();
 			
 			if (data.success && data.payload?.data) {
-				// Merge saved attendance statuses into the grid
+				let updated = { ...attendance };
 				for (const record of data.payload.data) {
 					const pId = record.participant_id;
 					const sId = record.session_id;
-					if (attendance[pId] && sId in attendance[pId]) {
-						attendance = {
-							...attendance,
+					if (updated[pId] && sId in updated[pId]) {
+						updated = {
+							...updated,
 							[pId]: {
-								...attendance[pId],
+								...updated[pId],
 								[sId]: record.status
 							}
 						};
 					}
 				}
+				attendance = updated;
 			}
 		} catch (err) {
-			// Non-fatal — we just won't have pre-filled statuses
 			console.warn('Could not load existing attendance:', err.message);
 		}
 	}
 	
-	// Save attendance status for a cell
+	// Save attendance — optimistic update then persist
 	async function setAttendance(participantId, sessionId, status) {
 		const previousStatus = attendance[participantId]?.[sessionId];
 		
-		// Optimistic update (Svelte reactivity via object spread)
 		attendance = {
 			...attendance,
 			[participantId]: {
@@ -212,7 +264,6 @@
 			if (!data.success) throw new Error(data.error || 'Save failed');
 			
 		} catch (err) {
-			// Revert on error
 			attendance = {
 				...attendance,
 				[participantId]: {
@@ -230,25 +281,18 @@
 	async function handleGroupChange() {
 		if (selectedGroup) {
 			buildAttendanceView();
+			
+			if (participants.length === 0) {
+				await loadParticipantsFallback();
+			}
+			
 			await loadExistingAttendance();
 		}
 	}
 	
-	// Reactive lookup — Svelte tracks this because we read `attendance` directly
-	$: attendanceLookup = attendance;
-	
-	function getCellClass(status) {
-		if (!status) return 'bg-white';
-		switch(status) {
-			case 'present': return 'bg-green-500';
-			case 'late': return 'bg-orange-400';
-			case 'absent': return 'bg-red-500';
-			default: return 'bg-white';
-		}
-	}
-	
 	function getButtonOpacity(status, buttonType) {
-		return status === buttonType ? 'opacity-100' : 'opacity-40';
+		if (!status) return 'opacity-30';
+		return status === buttonType ? 'opacity-100' : 'opacity-30';
 	}
 	
 	function formatDate(dateString) {
@@ -346,7 +390,7 @@
 								{#each sessions as session}
 									<td class="attendance-cell">
 										{@const status = attendanceLookup[participant.id]?.[session.id]}
-										<div class="cell-content {getCellClass(status)}">
+										<div class="cell-content">
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'present')}
 												class="btn btn-present {getButtonOpacity(status, 'present')}"
@@ -432,14 +476,10 @@
 	.name-cell { font-weight: 500; background: #f9fafb; }
 	.attendance-cell { padding: 0.5rem; }
 	
-	.cell-content { display: flex; align-items: center; justify-content: center; gap: 0.25rem; padding: 0.5rem; border-radius: 0.5rem; transition: background-color 150ms; }
-	.bg-white { background: white; }
-	.bg-green-500 { background: #22c55e; }
-	.bg-orange-400 { background: #fb923c; }
-	.bg-red-500 { background: #ef4444; }
+	.cell-content { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; border-radius: 0.5rem; }
 	
-	.btn { width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: all 150ms; color: white; }
-	.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+	.btn { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: opacity 150ms; color: white; }
+	.btn:disabled { cursor: not-allowed; }
 	.btn svg { width: 1.25rem; height: 1.25rem; }
 	
 	.btn-present { background: #22c55e; }
@@ -450,5 +490,5 @@
 	.btn-absent:hover:not(:disabled) { background: #dc2626; }
 	
 	.opacity-100 { opacity: 1; }
-	.opacity-40 { opacity: 0.4; }
+	.opacity-30 { opacity: 0.3; }
 </style>
