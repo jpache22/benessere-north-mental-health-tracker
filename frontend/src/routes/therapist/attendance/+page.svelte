@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { getAuthSession } from '$lib/auth';
 	
 	const BACKEND_URL = 'https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev';
 	
@@ -13,15 +14,18 @@
 	let saving = false;
 	
 	function getToken() {
-		return localStorage.getItem('authToken') || localStorage.getItem('token');
+		const session = getAuthSession();
+		return session.token || localStorage.getItem('authToken') || localStorage.getItem('token');
 	}
 	
 	function getUserId() {
-		return localStorage.getItem('userId');
+		const session = getAuthSession();
+		return session.userId || localStorage.getItem('userId');
 	}
 	
 	function getUserRole() {
-		return localStorage.getItem('userRole') || localStorage.getItem('role');
+		const session = getAuthSession();
+		return session.role || localStorage.getItem('userRole') || localStorage.getItem('role');
 	}
 	
 	onMount(async () => {
