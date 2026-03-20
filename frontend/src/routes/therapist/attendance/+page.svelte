@@ -1,10 +1,8 @@
 <script>
 	import { onMount } from 'svelte';
 	
-	// Backend URL 
 	const BACKEND_URL = 'https://benessere-north-mental-health-tracker-backend.julissa-school101.workers.dev';
 	
-	// State
 	let selectedGroup = '';
 	let groups = [];
 	let participants = [];
@@ -14,10 +12,6 @@
 	let error = null;
 	let saving = false;
 	
-	// Reactive lookup — Svelte tracks this so UI re-renders when attendance changes
-	$: attendanceLookup = attendance;
-	
-	// Get auth token and user info from localStorage
 	function getToken() {
 		return localStorage.getItem('token');
 	}
@@ -34,7 +28,6 @@
 		await loadGroupData();
 	});
 	
-	// Load all group data from the patientData endpoint
 	async function loadGroupData() {
 		try {
 			loading = true;
@@ -51,21 +44,14 @@
 			}
 			
 			const response = await fetch(url, {
-				headers: {
-					'Authorization': `Bearer ${getToken()}`
-				}
+				headers: { 'Authorization': `Bearer ${getToken()}` }
 			});
 			
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
-			
 			const data = await response.json();
-			
-			if (!data.success) {
-				throw new Error(data.error || 'Failed to load group data');
-			}
+			if (!data.success) throw new Error(data.error || 'Failed to load group data');
 			
 			const allGroups = data.patientData?.groups || [];
-			
 			groups = allGroups.map(g => ({
 				group_id: g.group_id,
 				label: g.grouplabel,
@@ -77,15 +63,11 @@
 			if (groups.length > 0) {
 				selectedGroup = groups[0].group_id;
 				buildAttendanceView();
-				
-				// Fallback: if patientData returned no patients, pull from old endpoint
 				if (participants.length === 0) {
 					await loadParticipantsFallback();
 				}
-				
 				await loadExistingAttendance();
 			}
-			
 		} catch (err) {
 			error = `Failed to load groups: ${err.message}`;
 			console.error('Error:', err);
@@ -94,7 +76,16 @@
 		}
 	}
 	
-	// Build participants and sessions arrays from the selected group
+	function parseDates(raw) {
+		if (!raw) return [];
+		if (Array.isArray(raw)) return raw;
+		if (typeof raw === 'string') {
+			try { return JSON.parse(raw); }
+			catch (e) { return raw.split(',').map(d => d.trim()); }
+		}
+		return [];
+	}
+	
 	function buildAttendanceView() {
 		const group = groups.find(g => g.group_id === selectedGroup);
 		if (!group) {
@@ -104,59 +95,34 @@
 			return;
 		}
 		
-		participants = group.patients.map(p => ({
-			id: p.patient_id,
-			name: p.username
-		}));
+		participants = group.patients.map(p => ({ id: p.patient_id, name: p.username }));
 		
 		let dates = parseDates(group.session_dates);
-		
 		sessions = dates.map((date, index) => ({
 			id: index + 1,
 			label: `Session ${index + 1}`,
 			date: date
 		}));
 		
-		attendance = {};
+		let att = {};
 		participants.forEach(p => {
-			attendance[p.id] = {};
-			sessions.forEach(s => {
-				attendance[p.id][s.id] = null;
-			});
+			att[p.id] = {};
+			sessions.forEach(s => { att[p.id][s.id] = null; });
 		});
+		attendance = att;
 	}
 	
-	function parseDates(raw) {
-		if (!raw) return [];
-		if (Array.isArray(raw)) return raw;
-		if (typeof raw === 'string') {
-			try {
-				return JSON.parse(raw);
-			} catch (e) {
-				return raw.split(',').map(d => d.trim());
-			}
-		}
-		return [];
-	}
-	
-	// Fallback: get participants when patientData has no patients (no form submissions yet)
 	async function loadParticipantsFallback() {
 		if (!selectedGroup) return;
-		
 		try {
 			const response = await fetch(`${BACKEND_URL}/getAttendance/group/${selectedGroup}`, {
-				headers: {
-					'Authorization': `Bearer ${getToken()}`
-				}
+				headers: { 'Authorization': `Bearer ${getToken()}` }
 			});
-			
 			if (!response.ok) return;
-			
 			const data = await response.json();
 			
 			if (data.success && data.payload?.data?.length > 0) {
 				const rows = data.payload.data;
-				
 				const seen = new Set();
 				participants = [];
 				for (const row of rows) {
@@ -176,50 +142,39 @@
 					}));
 				}
 				
-				attendance = {};
+				let att = {};
 				participants.forEach(p => {
-					attendance[p.id] = {};
-					sessions.forEach(s => {
-						attendance[p.id][s.id] = null;
-					});
+					att[p.id] = {};
+					sessions.forEach(s => { att[p.id][s.id] = null; });
 				});
+				attendance = att;
 			}
 		} catch (err) {
 			console.warn('Fallback participant load failed:', err.message);
 		}
 	}
 	
-	// Load saved attendance records and fill the grid colors
 	async function loadExistingAttendance() {
 		if (!selectedGroup) return;
-		
 		try {
 			const response = await fetch(`${BACKEND_URL}/attendance/group/${selectedGroup}`, {
-				headers: {
-					'Authorization': `Bearer ${getToken()}`
-				}
+				headers: { 'Authorization': `Bearer ${getToken()}` }
 			});
-			
-			if (!response.ok) {
-				console.warn('Could not load existing attendance records:', response.status);
-				return;
-			}
-			
+			if (!response.ok) return;
 			const data = await response.json();
 			
 			if (data.success && data.payload?.data) {
-				let updated = { ...attendance };
+				let updated = {};
+				// Deep copy current attendance
+				for (const pId in attendance) {
+					updated[pId] = { ...attendance[pId] };
+				}
+				// Merge saved records
 				for (const record of data.payload.data) {
 					const pId = record.participant_id;
 					const sId = record.session_id;
 					if (updated[pId] && sId in updated[pId]) {
-						updated = {
-							...updated,
-							[pId]: {
-								...updated[pId],
-								[sId]: record.status
-							}
-						};
+						updated[pId][sId] = record.status;
 					}
 				}
 				attendance = updated;
@@ -229,21 +184,19 @@
 		}
 	}
 	
-	// Save attendance — optimistic update then persist
 	async function setAttendance(participantId, sessionId, status) {
 		const previousStatus = attendance[participantId]?.[sessionId];
 		
-		attendance = {
-			...attendance,
-			[participantId]: {
-				...attendance[participantId],
-				[sessionId]: status
-			}
-		};
+		// Optimistic update — build new object so Svelte detects the change
+		let updated = {};
+		for (const pId in attendance) {
+			updated[pId] = { ...attendance[pId] };
+		}
+		updated[participantId][sessionId] = status;
+		attendance = updated;
 		
 		try {
 			saving = true;
-			
 			const response = await fetch(`${BACKEND_URL}/attendance`, {
 				method: 'POST',
 				headers: {
@@ -257,20 +210,17 @@
 					group_id: selectedGroup
 				})
 			});
-			
 			if (!response.ok) throw new Error('Save failed');
-			
 			const data = await response.json();
 			if (!data.success) throw new Error(data.error || 'Save failed');
-			
 		} catch (err) {
-			attendance = {
-				...attendance,
-				[participantId]: {
-					...attendance[participantId],
-					[sessionId]: previousStatus
-				}
-			};
+			// Revert
+			let reverted = {};
+			for (const pId in attendance) {
+				reverted[pId] = { ...attendance[pId] };
+			}
+			reverted[participantId][sessionId] = previousStatus;
+			attendance = reverted;
 			error = `Failed to save: ${err.message}`;
 			setTimeout(() => { error = null; }, 3000);
 		} finally {
@@ -281,27 +231,18 @@
 	async function handleGroupChange() {
 		if (selectedGroup) {
 			buildAttendanceView();
-			
 			if (participants.length === 0) {
 				await loadParticipantsFallback();
 			}
-			
 			await loadExistingAttendance();
 		}
-	}
-	
-	function getButtonOpacity(status, buttonType) {
-		if (!status) return 'opacity-30';
-		return status === buttonType ? 'opacity-100' : 'opacity-30';
 	}
 	
 	function formatDate(dateString) {
 		try {
 			const date = new Date(dateString);
 			return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-		} catch {
-			return dateString;
-		}
+		} catch { return dateString; }
 	}
 </script>
 
@@ -309,7 +250,7 @@
 	<h1 class="page-title">Attendance Overview</h1>
 	
 	{#if error}
-		<div class="alert-error"> {error}</div>
+		<div class="alert-error">{error}</div>
 	{/if}
 	
 	{#if loading}
@@ -321,11 +262,7 @@
 		<div class="controls">
 			<div class="group-selector">
 				<label for="group-select">Group:</label>
-				<select 
-					id="group-select" 
-					bind:value={selectedGroup}
-					on:change={handleGroupChange}
-				>
+				<select id="group-select" bind:value={selectedGroup} on:change={handleGroupChange}>
 					{#each groups as group}
 						<option value={group.group_id}>{group.label || group.group_id}</option>
 					{/each}
@@ -389,11 +326,13 @@
 								<td class="name-cell">{participant.name}</td>
 								{#each sessions as session}
 									<td class="attendance-cell">
-										{@const status = attendanceLookup[participant.id]?.[session.id]}
 										<div class="cell-content">
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'present')}
-												class="btn btn-present {getButtonOpacity(status, 'present')}"
+												class="btn btn-present"
+												class:selected={attendance[participant.id]?.[session.id] === 'present'}
+												class:faded={attendance[participant.id]?.[session.id] && attendance[participant.id]?.[session.id] !== 'present'}
+												class:unset={!attendance[participant.id]?.[session.id]}
 												disabled={saving}
 												title="Present"
 											>
@@ -404,7 +343,10 @@
 											
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'late')}
-												class="btn btn-late {getButtonOpacity(status, 'late')}"
+												class="btn btn-late"
+												class:selected={attendance[participant.id]?.[session.id] === 'late'}
+												class:faded={attendance[participant.id]?.[session.id] && attendance[participant.id]?.[session.id] !== 'late'}
+												class:unset={!attendance[participant.id]?.[session.id]}
 												disabled={saving}
 												title="Late"
 											>
@@ -415,7 +357,10 @@
 											
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'absent')}
-												class="btn btn-absent {getButtonOpacity(status, 'absent')}"
+												class="btn btn-absent"
+												class:selected={attendance[participant.id]?.[session.id] === 'absent'}
+												class:faded={attendance[participant.id]?.[session.id] && attendance[participant.id]?.[session.id] !== 'absent'}
+												class:unset={!attendance[participant.id]?.[session.id]}
 												disabled={saving}
 												title="Absent"
 											>
@@ -478,7 +423,18 @@
 	
 	.cell-content { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; border-radius: 0.5rem; }
 	
-	.btn { width: 2.25rem; height: 2.25rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: opacity 150ms; color: white; }
+	.btn {
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: none;
+		cursor: pointer;
+		transition: opacity 150ms;
+		color: white;
+	}
 	.btn:disabled { cursor: not-allowed; }
 	.btn svg { width: 1.25rem; height: 1.25rem; }
 	
@@ -489,6 +445,12 @@
 	.btn-absent { background: #ef4444; }
 	.btn-absent:hover:not(:disabled) { background: #dc2626; }
 	
-	.opacity-100 { opacity: 1; }
-	.opacity-30 { opacity: 0.3; }
+	/* No selection yet — all buttons semi-visible */
+	.btn.unset { opacity: 0.4; }
+	
+	/* This button IS the selected status — full bright */
+	.btn.selected { opacity: 1; }
+	
+	/* A status is selected but it's NOT this button — very faded */
+	.btn.faded { opacity: 0.2; }
 </style>
