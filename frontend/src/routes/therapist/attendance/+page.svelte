@@ -1,4 +1,5 @@
 <script>
+<script>
 	import { onMount } from 'svelte';
 	
 	// Backend URL 
@@ -233,10 +234,11 @@
 		}
 	}
 	
-	function getCellClass(participantId, sessionId) {
-		const status = attendance[participantId]?.[sessionId];
+	// Reactive lookup — Svelte tracks this because we read `attendance` directly
+	$: attendanceLookup = attendance;
+	
+	function getCellClass(status) {
 		if (!status) return 'bg-white';
-		
 		switch(status) {
 			case 'present': return 'bg-green-500';
 			case 'late': return 'bg-orange-400';
@@ -245,8 +247,7 @@
 		}
 	}
 	
-	function getButtonOpacity(participantId, sessionId, buttonType) {
-		const status = attendance[participantId]?.[sessionId];
+	function getButtonOpacity(status, buttonType) {
 		return status === buttonType ? 'opacity-100' : 'opacity-40';
 	}
 	
@@ -344,10 +345,11 @@
 								<td class="name-cell">{participant.name}</td>
 								{#each sessions as session}
 									<td class="attendance-cell">
-										<div class="cell-content {getCellClass(participant.id, session.id)}">
+										{@const status = attendanceLookup[participant.id]?.[session.id]}
+										<div class="cell-content {getCellClass(status)}">
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'present')}
-												class="btn btn-present {getButtonOpacity(participant.id, session.id, 'present')}"
+												class="btn btn-present {getButtonOpacity(status, 'present')}"
 												disabled={saving}
 												title="Present"
 											>
@@ -358,7 +360,7 @@
 											
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'late')}
-												class="btn btn-late {getButtonOpacity(participant.id, session.id, 'late')}"
+												class="btn btn-late {getButtonOpacity(status, 'late')}"
 												disabled={saving}
 												title="Late"
 											>
@@ -369,7 +371,7 @@
 											
 											<button
 												on:click={() => setAttendance(participant.id, session.id, 'absent')}
-												class="btn btn-absent {getButtonOpacity(participant.id, session.id, 'absent')}"
+												class="btn btn-absent {getButtonOpacity(status, 'absent')}"
 												disabled={saving}
 												title="Absent"
 											>
