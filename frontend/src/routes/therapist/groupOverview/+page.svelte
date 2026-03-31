@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { API_BASE, MAX } from "./constants";
+    import { API_BASE, MAX_QUESTION_SCORE, MAX_TOTAL_SCORE, NUM_OF_QUESTIONS} from "./constants";
     import { onMount } from "svelte";
 
     let errorMsg: string | null = null; // should still be empty
@@ -17,6 +17,8 @@
 
     let sessionDates = [];
     let totalCol = [];
+
+    let selectedCell = null; // flag for displaying a selected cell
 
     onMount(async () => {
         const token = localStorage.getItem("authToken");
@@ -87,11 +89,21 @@
         }
     }
 
-    function colorFor(form: string, score: number) {
-        const max = MAX[form]; // max score possible for input form
-        
+    // Determines the color of the cell based on score and max possible score (can be used for total score and individual question scores)
+    function colorFor(score: number, max: number) {
         const hue = 120 - (score/max) * 120;
-        return `hsl(${hue}, 100%, 55%)`
+        return `hsl(${hue}, 100%, 55%)`;
+    }
+
+    // Given an array of form names returns the max number of questions a single form has
+    function maxQuestions(formList: string[]) {
+        let max = NUM_OF_QUESTIONS[formList[0]];
+        for (let i = 1; i < formList.length; i++) {
+            if (NUM_OF_QUESTIONS[formList[i]] > max) {
+                max = NUM_OF_QUESTIONS[formList[i]];
+            }
+        }
+        return max;
     }
 </script>
 
@@ -134,50 +146,72 @@
                     <div class="patient">{p.username}</div>
                     <!-- screening form scores-->
                     {#each screeningForms as s }
-                        <div class="cell">
+                    <!-- TODO: Add accessibility keys -->
+                        <div class="cell {selectedCell?.patient === p && selectedCell?.projectPhase == "screening" && selectedCell?.formNames[0] === s ? 'active' : ''}" 
+                            on:click={() => selectedCell = {
+                                patient: p,
+                                formNames: [s],
+                                projectPhase: "screening"
+                            }}>
                             {#if p.scores?.screening?.[s]}
-                                <div class="pill" style="background-color: {colorFor(s, p.scores.screening[s].total_score)};flex: 1;display: flex;align-items: center;justify-content: center">{p.scores.screening[s].total_score}</div>
+                                <div class="pill" style="background-color: {colorFor(p.scores.screening[s].total_score, MAX_TOTAL_SCORE[s])};flex: 1;display: flex;align-items: center;justify-content: center">{p.scores.screening[s].total_score}</div>
                             {:else}
-                                <span class="empty"> </span>
+                                <div class="pill" style="color: #999;flex: 1;display: flex;align-items: center;justify-content: center"><span>   </span></div>
                             {/if}
                         </div>
                     {/each}
                     <!-- Pre group forms -->
                     {#each pregroupForms as pf}
-                        <div class="cell">
+                        <div class="cell {selectedCell?.patient === p && selectedCell?.projectPhase == "pregroup" && selectedCell?.formNames[0] == pf ? 'active' : ''}" 
+                            on:click={() => selectedCell = {
+                                patient: p,
+                                formNames: [pf],
+                                projectPhase: "pregroup"
+                            }}>
                             {#if p.scores?.pregroup?.[pf]}
-                                <div class="pill" style="background-color: {colorFor(pf, p.scores.pregroup[pf].total_score)};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.pregroup[pf].total_score}</div>
+                                <div class="pill" style="background-color: {colorFor(p.scores.pregroup[pf].total_score, MAX_TOTAL_SCORE[pf])};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.pregroup[pf].total_score}</div>
                             {:else}
-                                <span class="empty"> </span>
+                                <div class="pill" style="color: #999;flex: 1;display: flex;align-items: center;justify-content: center"><span>   </span></div>
                             {/if}
                         </div>
                     {/each}
                     <!-- session forms -->
                     {#each sessionDates as date}
-                        <div class="cell">
+                        <div class="cell {selectedCell?.patient === p && selectedCell?.projectPhase == "session" && selectedCell?.sessionDate == date && selectedCell?.formNames === sessionForms ? 'active' : ''}" 
+                            on:click={() => selectedCell = {
+                                patient: p,
+                                formNames: sessionForms,
+                                projectPhase: "session",
+                                sessionDate: date
+                            }}>
                         <!-- check if there is any form data for that date-->
                         {#if p.scores?.session?.[date]}
                             <!-- now look at the specific forms -->
                             {#each sessionForms as sf}
                                 <!-- if there is data for that form make it-->
                                 {#if p.scores?.session?.[date]?.[sf]}
-                                    <div class="pill" style="background-color: {colorFor(sf, p.scores.session[date][sf].total_score)}">{p.scores.session[date][sf].total_score}</div>
+                                    <div class="pill" style="background-color: {colorFor(p.scores.session[date][sf].total_score, MAX_TOTAL_SCORE[sf])}">{p.scores.session[date][sf].total_score}</div>
                                 {:else}
-                                    <span class="empty"> </span>
+                                    <div class="pill" style="color: #999;flex: 1;display: flex;align-items: center;justify-content: center"><span>   </span></div>
                                 {/if}
                             {/each}
                         {:else}
-                            <span class="empty"> </span>    
+                            <div class="pill" style="color: #999;flex: 1;display: flex;align-items: center;justify-content: center"><span>   </span></div>    
                         {/if}
                         </div>
                     {/each}
                     <!-- post group forms-->
                     {#each postgroupForms as pf}
-                        <div class="cell">
+                        <div class="cell {selectedCell?.patient === p && selectedCell?.projectPhase == "postgroup" && selectedCell?.formNames[0] === pf ? 'active' : ''}" 
+                            on:click={() => selectedCell = {
+                                patient: p,
+                                formNames: [pf],
+                                projectPhase: "postgroup"
+                            }}>
                             {#if p.scores?.postgroup?.[pf]}
-                                <div class="pill" style="background-color: {colorFor(pf, p.scores.postgroup?.[pf]?.total_score)};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.postgroup?.[pf]?.total_score}</div>
+                                <div class="pill" style="background-color: {colorFor(p.scores.postgroup?.[pf]?.total_score, MAX_TOTAL_SCORE[pf])};flex: 1;display: flex;align-items: center;justify-content: center;">{p.scores.postgroup?.[pf]?.total_score}</div>
                             {:else}
-                                <span class="empty"> </span>
+                                <div class="pill" style="color: #999;flex: 1;display: flex;align-items: center;justify-content: center"><span>   </span></div>
                             {/if}
                         </div>
                     {/each}
@@ -196,6 +230,46 @@
     {:else}
         <b style="font-size: 20px">Loading...</b>
     {/if}
+    <!-- may not be reactive check -->
+    {#if selectedCell}
+        {#key selectedCell.patient["patient_id"] + selectedCell.projectPhase + selectedCell.formName}
+            <!-- make table for selected patient and session -->
+            <b style="font-size:20px">Score Deep Dive for {selectedCell.patient["username"]}:</b>
+            <div class="grid-wrapper">
+                <div class="grid" style="grid-template-columns: 50px repeat({maxQuestions(selectedCell.formNames)}, 100px);">
+                    <!-- top-left empty cell -->
+                    <div class="header"></div>
+                    <!-- header labels -->
+                    {#each {length: maxQuestions(selectedCell.formNames) }, n}
+                        <div class="header">{n + 1}</div>
+                    {/each}
+
+                    <!-- make each row -->
+                    {#each selectedCell.formNames as form}
+                        <!-- form name -->
+                        <div class="patient">{form}</div>
+                        <!-- individual question scores -->
+                        {#each {length: maxQuestions(selectedCell.formNames)}, i}
+                            <!-- may need to change -->
+                            {#if selectedCell.patient?.scores?.[selectedCell.projectPhase]?.[form]}
+                                <div class="pill" style="background-color: {colorFor(selectedCell.patient.scores[selectedCell.projectPhase][form].responses["q" + (i + 1).toString()], MAX_QUESTION_SCORE[form])};flex: 1;display: flex;align-items: center;justify-content: center">
+                                        {selectedCell.patient.scores[selectedCell.projectPhase][form].responses["q" + (i + 1).toString()]}
+                                </div>
+                            {:else if selectedCell.patient?.scores?.session?.[selectedCell.sessionDate]?.[form] && i < NUM_OF_QUESTIONS[form]}
+                                <div class="pill" style="background-color: {colorFor(selectedCell.patient.scores.session[selectedCell.sessionDate][form].responses.q1, MAX_QUESTION_SCORE[form])};flex: 1;display: flex;align-items: center;justify-content: center">
+                                        {selectedCell.patient.scores.session[selectedCell.sessionDate][form].responses["q" + (i+1).toString()]}
+                                </div>
+                            {:else}
+                                <div class="pill" style="color: #999;flex: 1;display: flex;align-items: center;justify-content: center">
+                                    N/A
+                                </div>
+                            {/if}
+                        {/each}    
+                    {/each}     
+                </div>
+            </div>
+        {/key}
+    {/if}
 {/if}
 
 
@@ -210,7 +284,8 @@
   .grid {display: grid;gap: 6px;align-items: stretch;min-width: max-content;}
   .header {font-weight: 600;background: #f3f3f3;padding: 8px;text-align: center;color:#111827}
   .patient {font-weight: 500;padding: 8px;text-align: center;color:#111827}
-  .cell {padding: 6px;background: #fafafa;display: flex;flex-direction: column;gap: 0px;color:#111827}
+  .cell {padding: 6px;background: #fafafa;display: flex;flex-direction: column;gap: 0px;color:#111827;cursor:pointer}
+  .cell.active {outline: 3px solid #333;}
   .pill {padding: 4px 6px;font-size: 0.8rem;text-align: center;font-weight: bolder;font-size: 13px;}
   .empty {color: #999;}
 

@@ -1,7 +1,12 @@
-export const MAX = {
+export const MAX_TOTAL_SCORE = {
     PHQ9: 27,
     EPDS: 30
 }; // max score that can be earned on the implemented forms
+
+export const MAX_QUESTION_SCORE = {
+    PHQ9: 3,
+    EPDS: 3
+} // max score that can be earned per question on each form
 
 export const NUM_OF_QUESTIONS = {
     PHQ9: 9,
