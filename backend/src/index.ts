@@ -427,6 +427,27 @@ function generateTempPassword() {
     return `Temp-${num}`;
 }
 
+async function getAuthorizedGroup(client: any, groupId: string, authToken: any) {
+    const groupResult = await client.query(
+        `SELECT group_id, therapist_id
+         FROM public."groups"
+         WHERE group_id = $1
+         LIMIT 1`,
+        [groupId]
+    );
+
+    if (groupResult.rows.length === 0) {
+        return { ok: false, status: 404, error: 'Group not found.' };
+    }
+
+    const group = groupResult.rows[0];
+    if (authToken.role === 'therapist' && Number(group.therapist_id) !== Number(authToken.userId)) {
+        return { ok: false, status: 403, error: 'Unauthorized' };
+    }
+
+    return { ok: true, group };
+}
+
 app.post('/admin/reset-password', async (context) => {
     var client;
     try {
@@ -486,7 +507,9 @@ app.get('/getAttendance/group/:groupID', async (context) => {
         // Access control
         const authToken = await check_auth_token(context);
         if (!authToken) return context.json({success: false}, 401);
-        if (authToken.role !== "therapist") return context.json({success: false}, 403);
+        if (authToken.role !== "therapist" && authToken.role !== "admin") {
+            return context.json({success: false}, 403);
+        }
 
 
         const gID = context.req.param('groupID'); // make sure you're reading it correctly
@@ -494,8 +517,20 @@ app.get('/getAttendance/group/:groupID', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         client = await getConnection(connectionString);
 
+        const groupAccess = await getAuthorizedGroup(client, gID, authToken);
+        if (!groupAccess.ok) {
+            return context.json({success: false, error: groupAccess.error}, groupAccess.status);
+        }
+
         const result = await client.query(
-            'SELECT u.username, g.session_dates FROM users u JOIN groups g ON u.patient_assigned_group_id = g.group_id WHERE g.group_id = $1',
+            `SELECT
+                u.id AS user_id,
+                u.username,
+                g.session_dates
+             FROM users u
+             JOIN public."groups" g ON u.patient_assigned_group_id = g.group_id
+             WHERE g.group_id = $1
+             ORDER BY u.username`,
             [gID]
         );
 
@@ -541,6 +576,23 @@ app.post('/attendance', async (context) => {
         const connectionString = context.env.HYPERDRIVE.connectionString;
         client = await getConnection(connectionString);
 
+        const groupAccess = await getAuthorizedGroup(client, String(group_id), authToken);
+        if (!groupAccess.ok) {
+            return context.json({success: false, error: groupAccess.error}, groupAccess.status);
+        }
+
+        const participantResult = await client.query(
+            `SELECT 1
+             FROM users
+             WHERE id = $1 AND patient_assigned_group_id = $2
+             LIMIT 1`,
+            [participant_id, group_id]
+        );
+
+        if (participantResult.rows.length === 0) {
+            return context.json({success: false, error: 'Participant is not assigned to this group.'}, 400);
+        }
+
         const result = await client.query(
             `INSERT INTO attendance (participant_id, session_id, group_id, status, updated_by, updated_at, created_at)
              VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
@@ -575,6 +627,11 @@ app.get('/attendance/group/:groupID', async (context) => {
 
         const connectionString = context.env.HYPERDRIVE.connectionString;
         client = await getConnection(connectionString);
+
+        const groupAccess = await getAuthorizedGroup(client, groupID, authToken);
+        if (!groupAccess.ok) {
+            return context.json({success: false, error: groupAccess.error}, groupAccess.status);
+        }
 
         const result = await client.query(
             `SELECT a.participant_id, a.session_id, a.group_id, a.status, a.updated_at, u.username

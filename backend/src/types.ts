@@ -49,6 +49,7 @@ export const ProjectRequest = z.object({
 
 export const GroupRequest = z.object({
     project_id: z.coerce.number().int().positive(),
+    therapist_id: z.coerce.number().int().positive(),
     label: z.string().trim().min(1),
     session_dates: z.array(z.coerce.date()).min(1)
 });

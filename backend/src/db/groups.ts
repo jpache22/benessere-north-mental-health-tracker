@@ -16,7 +16,15 @@ groups.get('/', async(context) => {
     var client = await getConnection(context.env.HYPERDRIVE.connectionString);
     try {
         const result = await client.query(
-            `SELECT group_id, project_id, label, session_dates FROM public."groups"`
+            `SELECT
+                g.group_id,
+                g.project_id,
+                g.therapist_id,
+                g.label,
+                g.session_dates,
+                therapist.username AS therapist_username
+            FROM public."groups" g
+            LEFT JOIN public.users therapist ON therapist.id = g.therapist_id`
         );
         return context.json({ success:true, groups: result.rows }, 200);
     } catch (err: any) {
@@ -41,8 +49,16 @@ groups.get('/group_id/:group_id', async(context) => {
 
     try {
         const result = await client.query(
-            `SELECT group_id, project_id, label, session_dates
-            FROM public."groups" WHERE group_id = $1`,
+            `SELECT
+                g.group_id,
+                g.project_id,
+                g.therapist_id,
+                g.label,
+                g.session_dates,
+                therapist.username AS therapist_username
+            FROM public."groups" g
+            LEFT JOIN public.users therapist ON therapist.id = g.therapist_id
+            WHERE g.group_id = $1`,
             [group_id]
         );
 
@@ -73,8 +89,16 @@ groups.get('/project_id/:project_id', async(context) => {
 
     try {
         const result = await client.query(
-            `SELECT project_id, group_id, label, session_dates
-            FROM public."groups" WHERE project_id = $1`,
+            `SELECT
+                g.project_id,
+                g.group_id,
+                g.therapist_id,
+                g.label,
+                g.session_dates,
+                therapist.username AS therapist_username
+            FROM public."groups" g
+            LEFT JOIN public.users therapist ON therapist.id = g.therapist_id
+            WHERE g.project_id = $1`,
             [project_id]
         );
 
@@ -131,6 +155,15 @@ groups.post('/', async(context) => {
             );
         }
 
+        const therapistResult = await client.query(
+            `SELECT id FROM public."users" WHERE id = $1 AND role = 'therapist' LIMIT 1`,
+            [validData.therapist_id]
+        );
+
+        if (therapistResult.rows.length === 0) {
+            return context.json({ success: false, error: "Selected therapist not found." }, 404);
+        }
+
         const existingGroup = await client.query(
             `SELECT 1 FROM public."groups" WHERE project_id = $1 AND label = $2 LIMIT 1`,
             [validData.project_id, validData.label]
@@ -141,11 +174,12 @@ groups.post('/', async(context) => {
         }
 
         const result = await client.query(
-            `INSERT INTO public."groups" (project_id, label, session_dates)
-            VALUES ($1, $2, $3)
+            `INSERT INTO public."groups" (project_id, therapist_id, label, session_dates)
+            VALUES ($1, $2, $3, $4)
             RETURNING group_id;`,
             [
                 validData.project_id,
+                validData.therapist_id,
                 validData.label,
                 validData.session_dates
             ]

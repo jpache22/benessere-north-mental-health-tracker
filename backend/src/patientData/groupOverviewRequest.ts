@@ -18,10 +18,14 @@ patientData.get('/therapist/:therapist_id', async(context) => {
     if (!auth || auth.role !== 'therapist') {
         return context.json({ success: false, error: "Unauthorized" }, 403);
     }
+
+    const therapist_id = Number(auth.userId);
+    if (!Number.isFinite(therapist_id)) {
+        return context.json({ success: false, error: "Unauthorized" }, 403);
+    }
     
     // make query to database
     var client = await getConnection(context.env.HYPERDRIVE.connectionString);
-    const therapist_id = context.req.param("therapist_id");
 
     try {
         const result = await client.query(`
@@ -141,6 +145,10 @@ patientData.get('/therapist/:therapist_id', async(context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: 'Failed to fetch data' }, 500)
+    } finally {
+        if (client) {
+            await client.end();
+        }
     }
 
 });
@@ -277,6 +285,10 @@ patientData.get('/admin', async(context) => {
     } catch (err: any) {
         console.error(err);
         return context.json({ success: false, error: 'Failed to fetch data' }, 500)
+    } finally {
+        if (client) {
+            await client.end();
+        }
     }
 
 });

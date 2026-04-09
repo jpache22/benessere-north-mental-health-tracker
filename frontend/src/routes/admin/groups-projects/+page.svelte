@@ -7,6 +7,7 @@
 
   const PROJECTS_URL = `${API_BASE}/projects`;
   const GROUPS_URL = `${API_BASE}/groups`;
+  const USERS_URL = `${API_BASE}/adminFetchTable`;
 
   let loading = true;
   let errorMsg = '';
@@ -14,6 +15,7 @@
 
   let projects = [];
   let groups = [];
+  let therapists = [];
 
   let projectLabel = '';
   let projectType = 'research';
@@ -25,11 +27,17 @@
   let postGroupFormsInput = '';
 
   let selectedProjectId = '';
+  let selectedTherapistId = '';
   let groupLabel = '';
   let groupSessionDates = [''];
 
   $: selectedProject = projects.find((p) => String(p.project_id) === String(selectedProjectId)) ?? null;
   $: expectedSessionCount = Number(selectedProject?.num_of_therapy_sessions ?? 0);
+  $: if (therapists.length === 0) {
+    selectedTherapistId = '';
+  } else if (!therapists.some((therapist) => String(therapist.id) === String(selectedTherapistId))) {
+    selectedTherapistId = String(therapists[0].id);
+  }
 
   $: {
     if (!selectedProject) {
@@ -69,6 +77,11 @@
     return projects.find((p) => Number(p.project_id) === Number(projectId))?.label ?? `Project ${projectId}`;
   }
 
+  function therapistLabel(group) {
+    if (group.therapist_username) return group.therapist_username;
+    return therapists.find((therapist) => Number(therapist.id) === Number(group.therapist_id))?.name ?? '-';
+  }
+
   async function refreshData() {
     loading = true;
     errorMsg = '';
@@ -81,17 +94,21 @@
     }
 
     try {
-      const [projectsRes, groupsRes] = await Promise.all([
+      const [projectsRes, groupsRes, usersRes] = await Promise.all([
         fetch(PROJECTS_URL, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         fetch(GROUPS_URL, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(USERS_URL, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
 
       const projectsJson = await projectsRes.json();
       const groupsJson = await groupsRes.json();
+      const usersJson = await usersRes.json();
 
       if (!projectsRes.ok || !projectsJson.success) {
         throw new Error('Failed to fetch projects.');
@@ -99,9 +116,19 @@
       if (!groupsRes.ok || !groupsJson.success) {
         throw new Error('Failed to fetch groups.');
       }
+      if (!usersRes.ok || !usersJson.success) {
+        throw new Error('Failed to fetch users.');
+      }
 
       projects = projectsJson.projects ?? [];
       groups = groupsJson.groups ?? [];
+      therapists = (usersJson.payload?.data ?? [])
+        .filter((user) => user.role === 'therapist')
+        .map((user) => ({
+          id: user.id,
+          name: user.username,
+          email: user.email ?? ''
+        }));
 
       if (!selectedProjectId && projects.length > 0) {
         selectedProjectId = String(projects[0].project_id);
@@ -205,6 +232,11 @@
       return;
     }
 
+    if (!selectedTherapistId) {
+      errorMsg = 'Select a therapist before creating a group.';
+      return;
+    }
+
     const trimmedDates = groupSessionDates.map((d) => d.trim()).filter(Boolean);
     if (expectedSessionCount > 0 && trimmedDates.length !== expectedSessionCount) {
       errorMsg = `This project requires exactly ${expectedSessionCount} session date(s).`;
@@ -213,6 +245,7 @@
 
     const payload = {
       project_id: Number(selectedProjectId),
+      therapist_id: Number(selectedTherapistId),
       label: groupLabel.trim(),
       session_dates: trimmedDates
     };
@@ -325,6 +358,20 @@
       </label>
 
       <label class="field">
+        <span>Therapist</span>
+        <select class="input" bind:value={selectedTherapistId} required disabled={therapists.length === 0}>
+          <option value="">{therapists.length === 0 ? 'No therapists available' : 'Select therapist'}</option>
+          {#each therapists as therapist}
+            <option value={therapist.id}>{therapist.name}</option>
+          {/each}
+        </select>
+      </label>
+
+      {#if therapists.length === 0}
+        <p class="muted">Create or promote a therapist user before creating a group.</p>
+      {/if}
+
+      <label class="field">
         <span>Group Label</span>
         <input class="input" bind:value={groupLabel} placeholder="Group 1" required />
       </label>
@@ -340,7 +387,7 @@
         </div>
       {/if}
 
-      <button class="btn" type="submit" disabled={projects.length === 0}>Create Group</button>
+      <button class="btn" type="submit" disabled={projects.length === 0 || therapists.length === 0}>Create Group</button>
     </form>
   </div>
 </section>
@@ -409,6 +456,7 @@
             <th>ID</th>
             <th>Project</th>
             <th>Label</th>
+            <th>Therapist</th>
             <th>Session Count</th>
             <th>First Session</th>
             <th>Last Session</th>
@@ -421,6 +469,7 @@
               <td>{group.group_id}</td>
               <td>{groupProjectLabel(group.project_id)}</td>
               <td>{group.label}</td>
+              <td>{therapistLabel(group)}</td>
               <td>{sortedDates.length}</td>
               <td>{sortedDates.length ? formatDate(String(sortedDates[0]).slice(0, 10)) : '-'}</td>
               <td>{sortedDates.length ? formatDate(String(sortedDates[sortedDates.length - 1]).slice(0, 10)) : '-'}</td>
