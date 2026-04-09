@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { getConnection } from '../db/pool';
 import { Bindings } from '../types';
 import { PHQ9Request } from '../types';
+import { check_auth_token } from '../index';
 
 const phq9 = new Hono<{Bindings: Bindings}>();
 
@@ -28,16 +29,25 @@ phq9.get('/', async(context) => {
 
 // Admin: fetch minimal PHQ-9 data for all users 
 phq9.get('/admin/all', async (context) => {
- var client = await getConnection(context.env.HYPERDRIVE.connectionString);
+  const auth = await check_auth_token(context);
+  if (!auth || auth.role !== 'admin') {
+    return context.json({ success: false, error: 'Unauthorized' }, 403);
+  }
+
+  var client = await getConnection(context.env.HYPERDRIVE.connectionString);
 
   try {
     const result = await client.query(`
       SELECT 
-        form_submission_id,
-        user_id,
-        total_score,
-        depression_severity
-      FROM public."PHQ9"
+        p.form_submission_id,
+        p.user_id,
+        u.username,
+        u.email,
+        p.completion_date,
+        p.total_score,
+        p.depression_severity
+      FROM public."PHQ9" p
+      LEFT JOIN public.users u ON u.id = p.user_id
       ORDER BY form_submission_id DESC;
     `);
 
@@ -50,6 +60,57 @@ phq9.get('/admin/all', async (context) => {
           await client.end();
       }
   }
+});
+
+// Admin: fetch a single PHQ-9 submission by submission id
+phq9.get('/admin/submission/:submissionId', async (context) => {
+    const auth = await check_auth_token(context);
+    if (!auth || auth.role !== 'admin') {
+        return context.json({ success: false, error: 'Unauthorized' }, 403);
+    }
+
+    const submissionId = context.req.param('submissionId');
+    var client = await getConnection(context.env.HYPERDRIVE.connectionString);
+
+    try {
+        const result = await client.query(
+            `SELECT
+                p.form_submission_id,
+                p.user_id,
+                u.username,
+                u.email,
+                p.completion_date,
+                p.q1,
+                p.q2,
+                p.q3,
+                p.q4,
+                p.q5,
+                p.q6,
+                p.q7,
+                p.q8,
+                p.q9,
+                p.total_score,
+                p.depression_severity
+             FROM public."PHQ9" p
+             LEFT JOIN public.users u ON u.id = p.user_id
+             WHERE p.form_submission_id = $1
+             LIMIT 1`,
+            [submissionId]
+        );
+
+        if (result.rows.length === 0) {
+            return context.json({ success: false, error: 'Submission not found.' }, 404);
+        }
+
+        return context.json({ success: true, submission: result.rows[0] });
+    } catch (err: any) {
+        console.error(err);
+        return context.json({ success: false, error: err.message }, 500);
+    } finally {
+        if (client) {
+            await client.end();
+        }
+    }
 });
 
 // Get the rows from PHQ9 for a specific user ( a user may have multiple rows if they have multiple submissions for this form ) will be ordered by completion date
