@@ -75,7 +75,7 @@
             sessionDates = selectedGroup?.session_dates ?? [];
 
             // temp needed for the form name formatting of the top title row
-            let joinedFormNames = sessionForms.join("/");
+            let joinedFormNames = sessionForms.join("/ ");
             let sessionFormNameCols = []
             sessionDates.forEach(d => { sessionFormNameCols.push(joinedFormNames)});
             // total columns (also top row of table)
@@ -130,13 +130,13 @@
         <div class="grid-wrapper">
 
             <!-- Create the grid for the selected group -->
-            <div class="grid" style="grid-template-columns: 100px repeat({totalCol.length}, 140px);">
+            <div class="grid" style="grid-template-columns: 100px repeat({totalCol.length}, 60px);">
                 <!-- top-left empty cell -->
                 <div class="header"></div>
                 <!-- Form columns -->
                 {#each totalCol as col}
                     <div class="header">
-                        {col}
+                        <p>{col}</p>
                     </div>
                 {/each}
 
